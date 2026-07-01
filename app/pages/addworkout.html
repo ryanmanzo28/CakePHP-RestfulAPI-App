@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+        <link rel="preload" href="../assets/main.css?v=4" as="style">
+        <link rel="preload" href="../main.js" as="script">
+        <link rel="stylesheet" href="../assets/main.css?v=4" />
+        <title>Add Workout</title>
+    </head>
+    <body>
+        <header class="dashboard-header">
+            <div class="dashboard-header-inner">
+                <div class="brand">
+                    <div class="logo" aria-hidden="true">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="2" y="2" width="20" height="20" rx="6" />
+                            <path d="M7 12h10M7 16h6" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1 class="dashboard-title">HydraCor</h1>
+                        <div class="tag">Workout Tracker</div>
+                    </div>
+                </div>
+                <div class="dashboard-actions">
+                    <div class="user-info">Signed in as <strong id="username"></strong></div>
+                    <button id="logout" class="btn secondary">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-content">
+            <div class="dashboard-container">
+                <section class="dashboard-overview">
+                    <h2>Add Workout</h2>
+                    <form id="addWorkoutForm" class="add-workout-form" novalidate>
+                        <input id="w_title" name="title" type="text" placeholder="Workout title" required />
+                        <input id="w_date" name="date" type="date" />
+                        <input id="w_duration" name="duration" type="text" placeholder="Duration (e.g. 45m)" />
+                        <textarea id="w_notes" name="notes" placeholder="Notes (optional)" rows="2"></textarea>
+                        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+                            <button type="submit" class="btn primary">Add</button>
+                        </div>
+                    </form>
+                    <div id="error" role="alert" class="error"></div>
+                </section>
+
+                <section class="dashboard-grid">
+                    <!-- Workout cards inserted here -->
+                    <div id="workoutList" class="workout-list"></div>
+                </section>
+            </div>
+            <button id="addWorkout" class="btn primary" >+</button>
+        </main>
+
+        <script src="../main.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', async function () {
+                const token = localStorage.getItem('jwt') ?? '';
+                const username = localStorage.getItem('username') || '';
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                document.getElementById('username').textContent = username;
+                document.getElementById('logout').addEventListener('click', function () {
+                    localStorage.removeItem('jwt');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('passwordHash');
+                    window.location.href = 'login.html';
+                });
+
+                try {
+                    const workouts = await loadWorkouts();
+                    const list = document.getElementById('workoutList');
+                    // Render workouts using DOM methods to avoid expensive innerHTML reflows
+                    if (!workouts || workouts.length === 0) {
+                        const msg = document.createElement('div');
+                        msg.className = 'workout-card';
+                        msg.textContent = 'No workouts found. Start logging your first session!';
+                        list.innerHTML = '';
+                        list.appendChild(msg);
+                    } else {
+                        // build fragment off-DOM
+                        const frag = document.createDocumentFragment();
+                        for (const w of workouts) {
+                            const card = document.createElement('div');
+                            card.className = 'workout-card';
+
+                            const h = document.createElement('h3');
+                            h.textContent = (w.title || w.name || 'Workout');
+                            card.appendChild(h);
+
+                            const p = document.createElement('p');
+                            p.textContent = (w.notes || '');
+                            card.appendChild(p);
+
+                            frag.appendChild(card);
+                        }
+
+                        // apply in next animation frame for smoother paint
+                        requestAnimationFrame(() => {
+                            list.innerHTML = '';
+                            list.appendChild(frag);
+                        });
+                    }
+                } catch (e) {
+                    document.getElementById('error').textContent = e.message || 'Failed to load workouts';
+                }
+
+                // Add workout form handling
+                const addForm = document.getElementById('addWorkoutForm');
+                const addErr = document.getElementById('error');
+                addForm.addEventListener('submit', async function (ev) {
+                    ev.preventDefault();
+                    addErr.textContent = '';
+                    const title = document.getElementById('w_title').value.trim();
+                    const date = document.getElementById('w_date').value || '';
+                    const duration = document.getElementById('w_duration').value.trim();
+                    const notes = document.getElementById('w_notes').value.trim();
+                    if (!title) { addErr.textContent = 'Please provide a title.'; return; }
+
+                    const btn = addForm.querySelector('button[type=submit]');
+                    btn.disabled = true;
+                    btn.textContent = 'Adding…';
+                    try {
+                        const created = await window.addWorkout({ title, date, duration, notes });
+                        // Prepend to list
+                        const list = document.getElementById('workoutList');
+                        const card = document.createElement('div');
+                        card.className = 'workout-card';
+                        const h = document.createElement('h3'); h.textContent = created.title || title; card.appendChild(h);
+                        const p = document.createElement('p'); p.textContent = created.notes || notes || ''; card.appendChild(p);
+                        list.insertBefore(card, list.firstChild);
+                        addForm.reset();
+                        // If this was an optimistic local create, show an undo snackbar
+                        if (created && created._local) {
+                            showUndoSnackbar('Workout added (offline)', 'Undo', () => {
+                                if (card && card.parentNode) card.parentNode.removeChild(card);
+                            });
+                        }
+                    } catch (err) {
+                        addErr.textContent = err && err.message ? err.message : 'Failed to add workout';
+                    } finally {
+                        btn.disabled = false; btn.textContent = 'Add';
+                    }
+                });
+        
+                // simple snackbar helper
+                function showUndoSnackbar(text, actionText, onAction) {
+                    let sb = document.getElementById('snackbar');
+                    if (!sb) {
+                        sb = document.createElement('div');
+                        sb.id = 'snackbar';
+                        sb.className = 'snackbar';
+                        const span = document.createElement('div'); span.id = 'snackbarText'; sb.appendChild(span);
+                        const btn = document.createElement('button'); btn.className = 'action'; btn.id = 'snackbarAction'; sb.appendChild(btn);
+                        document.body.appendChild(sb);
+                    }
+                    document.getElementById('snackbarText').textContent = text;
+                    const actionBtn = document.getElementById('snackbarAction');
+                    actionBtn.textContent = actionText;
+                    actionBtn.onclick = function () {
+                        try { onAction && onAction(); } catch (e) {}
+                        sb.classList.add('hide');
+                    };
+                    sb.classList.remove('hide');
+                    // auto-hide after 6s
+                    setTimeout(() => { if (sb) sb.classList.add('hide'); }, 6000);
+                }
+            });
+
+            function escapeHtml(s) {
+                return String(s || '').replace(/[&<>"']/g, function (c) {
+                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+                });
+            }
+            document.getElementById('addWorkout').addEventListener('click', function () {
+    if (document.startViewTransition) {
+        document.startViewTransition(() => {
+            window.location.href = 'addworkout.html';
+        });
+    } else {
+        window.location.href = 'addworkout.html';
+    }
+});
+        </script>
+    </body>
+</html>

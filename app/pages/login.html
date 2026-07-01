@@ -5,6 +5,8 @@
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>HydraCor Workout Tracker — Login</title>
+        <link rel="preload" href="../assets/main.css?v=4" as="style">
+        <link rel="preload" href="/main.js" as="script">
         <link rel="stylesheet" href="../assets/main.css?v=4" />
     </head>
     <body>
@@ -47,13 +49,13 @@
                 </form>
 
                 <div class="divider" aria-hidden="true"></div>
-                <p class="help">New here? <a href="register.html">Create an account</a></p>
+                <p class="help">New here? <a href="/register.html">Create an account</a></p>
             </main>
 
             <footer class="login-footer">© 2026 HydraCor</footer>
         </div>
 
-        <script src="../main.js"></script>
+        <script src="/main.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 const form = document.getElementById('loginForm');
@@ -64,12 +66,13 @@
                     const email = document.getElementById('email').value.trim();
                     const password = document.getElementById('password').value;
                     try {
-                        // Compute client-side SHA-256 of password + normalized (lowercased) email, then send that value.
+                        // Compute client-side SHA-256 for local storage, but send the raw password
+                        // so the server can compute and try both sha256(email+password) and raw fallbacks.
                         const hashed = await hashPassword(password + email.toLowerCase());
                         const res = await fetch('/api/auth/login', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: email, password: hashed }),
+                            body: JSON.stringify({ email: email.toLowerCase(), password: password }),
                         });
                         const data = await res.json();
                         if (!res.ok) {

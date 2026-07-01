@@ -20,7 +20,7 @@ class AuthenticationMiddleware implements MiddlewareInterface
     {
         // Allow unauthenticated access to certain auth routes (login, token check)
         $path = $request->getUri()->getPath();
-        $allowed = ['/api/auth/login', '/api/auth/check', '/api/auth/logincheck', '/api/auth/token', '/api/auth/validate'];
+        $allowed = ['/api/auth/login', '/api/auth/check', '/api/auth/register', '/api/auth/logincheck', '/api/auth/token', '/api/auth/validate'];
         if (in_array($path, $allowed, true)) {
             return $handler->handle($request);
         }

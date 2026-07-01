@@ -26,8 +26,9 @@ class AuthController extends AppController
         }
 
         try {
-            $users = $this->fetchTable('Users');
-            $user = $users->find()->where(['email' => $email])->first();
+                $users = $this->fetchTable('Users');
+                // lookup by normalized (lowercased, trimmed) email to match registration normalization
+                $user = $users->find()->where(['email' => $emailNorm])->first();
             if (!$user) {
                 return $this->response->withStatus(401)->withStringBody(json_encode(['error' => 'Invalid credentials']));
             }
@@ -98,6 +99,46 @@ class AuthController extends AppController
             return $this->response->withType('application/json')->withStringBody(json_encode(['valid' => true, 'payload' => $payload]));
         } catch (\Throwable $e) {
             return $this->response->withStatus(401)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
+        }
+    }
+
+    /**
+     * Register a new user. Expects JSON body: { username, email, password }
+     * where `password` is the client-side SHA256(password+lowercase(email)) hex string.
+     */
+    public function register()
+    {
+        $data = $this->request->getData();
+        $username = isset($data['username']) ? trim((string)$data['username']) : null;
+        $email = isset($data['email']) ? trim((string)$data['email']) : null;
+        $password = isset($data['password']) ? (string)$data['password'] : null;
+
+        if (!$username || !$email || !$password) {
+            return $this->response->withStatus(400)->withType('application/json')->withStringBody(json_encode(['error' => 'Missing fields']));
+        }
+
+        try {
+            $users = $this->fetchTable('Users');
+            $existing = $users->find()->where(['email' => $email])->first();
+            if ($existing) {
+                return $this->response->withStatus(409)->withType('application/json')->withStringBody(json_encode(['error' => 'Email already registered']));
+            }
+
+            // Server stores bcrypt of the client-provided sha hex
+            $hashed = password_hash($password, PASSWORD_DEFAULT);
+
+            $user = $users->newEntity([]);
+            $user->username = $username;
+            $user->email = strtolower($email);
+            $user->password = $hashed;
+
+            if ($users->save($user)) {
+                return $this->response->withStatus(201)->withType('application/json')->withStringBody(json_encode(['message' => 'User created']));
+            }
+
+            return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Failed to save user']));
+        } catch (\Throwable $e) {
+            return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
         }
     }
 }

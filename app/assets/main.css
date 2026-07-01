@@ -1,4 +1,7 @@
 
+@view-transition {
+  navigation: auto;
+}
 :root{
     --bg-top:#fbfcff;
     --bg-bottom:#ffffff;
@@ -6,22 +9,43 @@
     --accent-2:#4338ca; /* subtle darker */
     --card:#ffffff;
     --muted:#6b6b85;
+    --app-gradient: linear-gradient(
+  135deg,
+  #f2f3f7 0%,
+  #c7c9ff 35%,
+  #6b62ff 65%,
+  #3220ff 100%
+);
 }
 
-*{box-sizing:border-box}
-body{
-    margin:0;
+* {
+    box-sizing: border-box;
+}
+
+body {
+    display: flex;
+    margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-    color:#222;
-    background: linear-gradient(
-  in oklch,
-  #efecec,
-  #d7cfff,
-  #a58cff,
-  #704cff,
-  #3e01f5
-);
-    -webkit-font-smoothing:antialiased;
+    color: #222;
+
+    background: var(--app-gradient);
+    background-attachment: fixed;
+
+    -webkit-font-smoothing: antialiased;
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    transform: translateZ(0);
+    will-change: opacity, transform;
 }
 
 .login-wrapper{
@@ -40,7 +64,7 @@ body{
     background: var(--card);
     backdrop-filter: blur(10px);
     border-radius:12px;
-    box-shadow:0 10px 30px rgba(20,20,60,0.08);
+    box-shadow:0 6px 18px rgba(20,20,60,0.06);
     padding:26px;
     border:1px solid rgba(30,30,60,0.06);
 }
@@ -75,6 +99,7 @@ body{
 .actions{ margin-top:18px;display:flex;justify-content:flex-end }
 .btn{ padding:10px 18px;border-radius:10px;border:none;cursor:pointer;font-weight:700;letter-spacing:0.2px }
 .btn.primary{ background:var(--accent);color:#fff;box-shadow:0 6px 18px rgba(79,70,229,0.12);transition:transform .12s ease,box-shadow .12s ease }
+.btn.primary, .btn.secondary { will-change: transform, opacity; transform: translateZ(0); }
 .btn.primary:hover{ transform:translateY(-2px);box-shadow:0 12px 26px rgba(79,70,229,0.14) }
 .btn.primary:active{ transform:translateY(0);box-shadow:0 6px 14px rgba(79,70,229,0.10) }
 
@@ -87,6 +112,93 @@ body{
 .card-title h1{ margin:0;font-size:1.1rem;color:#161627 }
 .card-title .tag{ margin:0;color:var(--muted);font-size:0.95rem }
 .row-between{ display:flex;justify-content:space-between }
+
+/* Ensure card headers inside cards are not styled by the global `header` rule */
+.login-card > .card-header,
+.login-card header.card-header {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+    }
+    /* Card header should appear as a colored header bar inside the card */
+    .login-card header.card-header,
+    .login-card > .card-header {
+
+        /* Header container - content sits above a moving background pseudo-element */
+        background: transparent !important;
+        color: #fff !important;
+        padding: 12px 16px !important;
+        margin: 0 0 12px 0 !important;
+        border-radius: 10px 10px 8px 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        position: relative !important;
+        overflow: hidden !important;
+    }
+
+    /* Ensure title in card header is white and stands out */
+    .login-card .card-title h1 { color: #fff !important; }
+
+    /* On colored header make the logo rect white for contrast */
+    .login-card .card-header .logo svg rect { fill: var(--accent) !important; }
+
+    /* animated background behind the header content */
+    .login-card .card-header::before {
+    will-change: background-position, filter;
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: linear-gradient(90deg, #9fc7ff, #6f9bff);
+    background-size: 300% 300%;
+    border-radius: inherit;
+    animation: headerBgShift 20s ease-in-out infinite;
+    filter: brightness(1);
+        transform: translateZ(0);
+}
+
+    /* keep header content above the moving background */
+    .login-card .card-header > * {
+    position: relative;
+    z-index: 1;
+}
+
+    @keyframes headerBgShift {
+    0% {
+        transform: translate3d(0,0,0);
+        background-position: 0% 50%;
+        filter: brightness(1);
+    }
+
+    25% {
+        transform: translate3d(0,0,0);
+        background-position: 35% 45%;
+        filter: brightness(0.97);
+    }
+
+    50% {
+        transform: translate3d(0,0,0);
+        background-position: 100% 55%;
+        filter: brightness(1.02);
+    }
+
+    75% {
+        transform: translate3d(0,0,0);
+        background-position: 65% 60%;
+        filter: brightness(0.98);
+    }
+
+    100% {
+        transform: translate3d(0,0,0);
+        background-position: 0% 50%;
+        filter: brightness(1);
+    }
+}
+
+/* Logo inside card headers should use the brand accent */
+
+ 
 
 /* ensure items in the row are vertically centered */
 .row-between{ align-items:center }
@@ -107,6 +219,115 @@ button{ cursor:pointer }
 @media (max-width:420px){
     .login-card{ padding:18px;border-radius:10px }
 }
-.card-header {
-    border-radius:8px;
+
+/* Strong override: ensure card headers inside cards match the card background
+   and the intended title color, overriding the global `header` rule. */
+
+
+.dashboard-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 60;
+    /* stronger, GPU-friendly blur */
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    will-change: transform, backdrop-filter;
+    transform: translate3d(0,0,0);
+    min-height: 68px;
+}
+
+.dashboard-header-inner{
+    max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:12px 18px;
+}
+
+.dashboard-title{ margin:0;font-size:1.05rem;color:#fff }
+.dashboard-actions{ display:flex;gap:12px;align-items:center }
+.btn.secondary{ background:transparent;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px 12px;border-radius:10px }
+
+.dashboard-content{ padding-top:88px }
+.dashboard-container{ max-width:1100px;margin:20px auto;padding:0 18px }
+
+.dashboard-overview h2{ margin:0 0 12px 0;font-size:1.1rem;color:#161627 }
+
+.dashboard-grid{ display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:12px }
+
+.workout-card{ background:rgba(255,255,255,0.95);border-radius:12px;padding:14px;border:1px solid rgba(20,20,60,0.04);box-shadow:0 8px 18px rgba(20,20,60,0.04); will-change: transform, opacity; transform: translateZ(0); }
+.workout-card h3{ margin:0 0 6px 0;font-size:1rem }
+.workout-card p{ margin:0;color:#444;font-size:0.95rem }
+
+.workout-list{ display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px }
+
+/* Add workout form styles */
+.add-workout-form{ display:grid;grid-template-columns:1fr 140px;gap:8px;align-items:center;margin:12px 0 }
+.add-workout-form input,.add-workout-form textarea{ padding:8px 10px;border-radius:8px;border:1px solid #e9e9f5;background:#fff }
+.add-workout-form textarea{ grid-column:1 / -1 }
+.add-workout-form input[type=date]{ padding:8px }
+.add-workout-form .btn{ grid-column:2 / 3; justify-self:end }
+
+@media (max-width:520px){
+    .add-workout-form{ grid-template-columns:1fr; }
+    .add-workout-form .btn{ grid-column:1 }
+}
+
+@media (max-width:720px){
+    .dashboard-header-inner{padding:10px}
+    .dashboard-content{padding-top:84px}
+}
+
+/* Snackbar/undo */
+.snackbar {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    background: rgba(20,20,60,0.95);
+    color: #fff;
+    padding: 10px 14px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(20,20,60,0.12);
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    z-index: 200;
+}
+.snackbar .action { background: transparent; border: 1px solid rgba(255,255,255,0.14); color: #fff; padding:6px 10px; border-radius:8px; cursor: pointer }
+.snackbar.hide { display: none }
+
+#addWorkout {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background-color:#4635ff;
+    color: #FFFF;
+    font-size: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    z-index: 9999;
+
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+
+    box-shadow: 0 10px 25px rgba(40, 40, 40, 0.25);
+    cursor: pointer;
+    filter: brightness(1);
+}
+
+#addWorkout:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 26px rgba(0,0,0,.3);
+    filter: brightness(1.3);
+}
+#addWorkout:active {
+  animation: popEffect 0.3s ease-out;
+}
+@keyframes popEffect {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); } /* Expands outwards */
+  100% { transform: scale(1); }  /* Snaps back to normal */
 }

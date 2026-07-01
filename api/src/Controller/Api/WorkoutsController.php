@@ -55,6 +55,82 @@ class WorkoutsController extends AppController
         }
     }
 
+    /**
+     * Create a new workout for the authenticated user.
+     * Expects JSON body: { title, date?, duration?, notes? }
+     */
+    public function create()
+    {
+        $header = $this->request->getHeaderLine('Authorization');
+        $token = null;
+        if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $m)) {
+            $token = $m[1];
+        }
+        if (!$token) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Missing or invalid Authorization header']));
+        }
+
+        try {
+            $secret = getenv('JWT_SECRET') ?: 'change_me';
+            $payload = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secret, 'HS256'));
+            $userId = (int)($payload->sub ?? 0);
+            if ($userId <= 0) {
+                return $this->response->withStatus(401)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Invalid token payload']));
+            }
+
+            $data = $this->request->getData();
+            $title = isset($data['title']) ? trim((string)$data['title']) : '';
+            if (!$title) {
+                return $this->response->withStatus(400)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Missing title']));
+            }
+
+            // Use Cake ORM when available
+            $workouts = $this->fetchTable('Workouts');
+            $entity = $workouts->newEntity([]);
+            $entity->user_id = $userId;
+            $entity->title = $title;
+            $entity->notes = isset($data['notes']) ? (string)$data['notes'] : null;
+            $entity->date = isset($data['date']) && $data['date'] ? $data['date'] : null;
+            $entity->duration = isset($data['duration']) ? (string)$data['duration'] : null;
+
+            if ($workouts->save($entity)) {
+                return $this->response->withStatus(201)->withType('application/json')
+                    ->withStringBody(json_encode($entity));
+            }
+
+            // Fallback to PDO insert if save failed
+            throw new \RuntimeException('Failed to save workout');
+        } catch (\Throwable $e) {
+            // Try PDO fallback insert
+            try {
+                $host = getenv('DB_HOST') ?: 'localhost';
+                $db = getenv('DB_NAME') ?: 'cakephp';
+                $user = getenv('DB_USER') ?: 'root';
+                $pass = getenv('DB_PASS') ?: '';
+                $charset = 'utf8mb4';
+                $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+                $options = [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION];
+                $pdo = new \PDO($dsn, $user, $pass, $options);
+                $stmt = $pdo->prepare('INSERT INTO workouts (user_id,title,notes,date,duration,created,modified) VALUES (:uid,:title,:notes,:date,:duration,NOW(),NOW())');
+                $stmt->execute([
+                    'uid' => $userId ?? 0,
+                    'title' => $title ?? '',
+                    'notes' => $data['notes'] ?? null,
+                    'date' => $data['date'] ?? null,
+                    'duration' => $data['duration'] ?? null,
+                ]);
+                $id = (int)$pdo->lastInsertId();
+                $result = ['id' => $id, 'user_id' => $userId, 'title' => $title, 'notes' => $data['notes'] ?? null, 'date' => $data['date'] ?? null, 'duration' => $data['duration'] ?? null];
+                return $this->response->withStatus(201)->withType('application/json')->withStringBody(json_encode($result));
+            } catch (\Throwable $_) {
+                return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
+            }
+        }
+    }
+
     protected function pdoQueryWorkoutsByHash(string $hash): array
     {
         $host = (function_exists('env') ? env('DB_HOST') : getenv('DB_HOST')) ?: 'localhost';

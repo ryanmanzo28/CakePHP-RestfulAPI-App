@@ -68,5 +68,17 @@ if (class_exists('\Cake\Core\Configure')) {
     \Cake\Core\Configure::write('debug', true);
 }
 // Make sure PHP errors are displayed in this development environment
-ini_set('display_errors', '1');
-error_reporting(E_ALL);
+// Turn off display of errors in responses and log them instead to avoid polluting JSON output
+ini_set('display_errors', '0');
+ini_set('log_errors', '1');
+// Exclude deprecation notices from reported errors to silence Cake deprecation warnings
+error_reporting(E_ALL & ~E_USER_DEPRECATED & ~E_DEPRECATED);
+
+if (class_exists('\Cake\Core\Configure')) {
+    // Inform CakePHP error handler to ignore user deprecations
+    \Cake\Core\Configure::write('Error.errorLevel', E_ALL & ~E_USER_DEPRECATED & ~E_DEPRECATED);
+    // Optionally ignore known deprecation paths to be very specific
+    $ignored = \Cake\Core\Configure::read('Error.ignoredDeprecationPaths') ?: [];
+    $ignored[] = 'vendor/cakephp/cakephp/src/I18n/I18n.php';
+    \Cake\Core\Configure::write('Error.ignoredDeprecationPaths', array_values(array_unique($ignored)));
+}
