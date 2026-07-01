@@ -21,15 +21,16 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Install PHP dependencies early to leverage Docker cache.
-# Copy the whole `api/` folder (safer if composer.lock is missing) and
-# run composer install only when `composer.json` exists.
-COPY api/ ./api/
-WORKDIR /var/www/html/api
-RUN if [ -f composer.json ]; then composer install --no-dev --no-interaction --optimize-autoloader --prefer-dist --no-scripts; fi
+# Copy composer files first for dependency caching
+COPY api/composer.json api/composer.lock* /var/www/html/api/
 
-# Return to project root and copy the rest of the application code
-WORKDIR /var/www/html
+# Install PHP dependencies early to leverage Docker cache
+RUN if [ -f /var/www/html/api/composer.json ]; then \
+      cd /var/www/html/api && \
+      composer install --no-dev --no-interaction --optimize-autoloader --prefer-dist --no-scripts; \
+    fi
+
+# Copy the rest of the application code
 COPY . .
 
 # Ensure proper permissions for PHP-FPM user
