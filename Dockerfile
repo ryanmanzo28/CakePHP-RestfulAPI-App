@@ -3,7 +3,6 @@ FROM php:8.2-fpm-alpine
 # Build-time args / defaults
 ARG APP_ENV=production
 ENV APP_ENV=${APP_ENV}
-ENV JWT_SECRET=change_me
 ENV DB_HOST=db
 ENV DB_NAME=cakephp
 ENV DB_USER=cakeuser
@@ -21,13 +20,14 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy composer files first for dependency caching
+# Copy composer files first for dependency caching (root project composer.json)
 COPY api/composer.json api/composer.lock* /var/www/html/api/
 
-# Install PHP dependencies early to leverage Docker cache
+# Install PHP dependencies for the API directory
 RUN if [ -f /var/www/html/api/composer.json ]; then \
       cd /var/www/html/api && \
-      composer install --no-dev --no-interaction --optimize-autoloader --prefer-dist --no-scripts; \
+      composer config --no-interaction --global http-basic.packagist.org no-http false && \
+      composer install --no-dev --no-interaction --optimize-autoloader --prefer-dist --no-scripts 2>&1; \
     fi
 
 # Copy the rest of the application code

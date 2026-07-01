@@ -4,8 +4,10 @@ namespace App\Middleware;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Laminas\Diactoros\Response\JsonResponse;
 
-class AuthenticationMiddleware
+class AuthenticationMiddleware implements MiddlewareInterface
 {
     protected JwtMiddleware $jwt;
 
@@ -16,6 +18,13 @@ class AuthenticationMiddleware
 
     public function __invoke(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        // Allow unauthenticated access to certain auth routes (login, token check)
+        $path = $request->getUri()->getPath();
+        $allowed = ['/api/auth/login', '/api/auth/check', '/api/auth/logincheck', '/api/auth/token', '/api/auth/validate'];
+        if (in_array($path, $allowed, true)) {
+            return $handler->handle($request);
+        }
+
         $token = $this->jwt->getTokenFromRequest($request);
         if (!$token) {
             return $this->unauthorizedResponse();
@@ -32,11 +41,14 @@ class AuthenticationMiddleware
         return $handler->handle($request);
     }
 
+    // PSR-15 compatibility
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    {
+        return $this($request, $handler);
+    }
+
     protected function unauthorizedResponse(): ResponseInterface
     {
-        $resp = new \Cake\Http\Response();
-        return $resp->withStatus(401)
-            ->withType('application/json')
-            ->withStringBody(json_encode(['error' => 'Unauthorized']));
+        return new JsonResponse(['error' => 'Unauthorized'], 401);
     }
 }
