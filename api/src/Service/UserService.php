@@ -18,4 +18,15 @@ class UserService
         $users = TableRegistry::getTableLocator()->get('Users');
         return $users->find()->where(['username' => $username])->first();
     }
+    public function getUserByUsername(string $username)
+    {
+        $users = TableRegistry::getTableLocator()->get('Users');
+        return $users->find()->where(['username' => $username])->first();
+    }
+    public function index()
+    {
+        $users = TableRegistry::getTableLocator()->get('');
+        $users = TableRegistry::getTableLocator()->get('Users');
+        return $users->find()->all()->toArray();
+    }
 }

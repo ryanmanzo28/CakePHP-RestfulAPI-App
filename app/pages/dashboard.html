@@ -27,7 +27,7 @@
     <script src="../main.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', async function () {
-        const token = localStorage.getItem('userToken');
+        const token = localStorage.getItem('jwt') ?? '';
         const username = localStorage.getItem('username') || '';
         if (!token) {
           window.location.href = 'login.html';
@@ -36,8 +36,9 @@
 
         document.getElementById('username').textContent = username;
         document.getElementById('logout').addEventListener('click', function () {
-          localStorage.removeItem('userToken');
+          localStorage.removeItem('jwt');
           localStorage.removeItem('username');
+          localStorage.removeItem('passwordHash');
           window.location.href = 'login.html';
         });
 

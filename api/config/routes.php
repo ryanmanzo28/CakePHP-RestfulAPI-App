@@ -6,4 +6,5 @@ $builder = Router::createRouteBuilder('/');
 $builder->scope('/api', function (RouteBuilder $routes) {
     $routes->connect('/workouts', 'Api/Workouts::index');
     $routes->connect('/auth/login', 'Api/Auth::login');
+    $routes->connect('/auth/check', 'Api/Auth::check');
 });

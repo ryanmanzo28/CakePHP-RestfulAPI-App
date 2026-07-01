@@ -6,7 +6,7 @@ use Cake\ORM\Entity;
 
 class Workout extends Entity
 {
-    protected $_accessible = [
+    protected array $_accessible = [
         '*' => true,
         'id' => false,
     ];

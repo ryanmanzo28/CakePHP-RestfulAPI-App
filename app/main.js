@@ -44,22 +44,15 @@ async function hashPassword(plainText) {
     return hashHex;
 }
 async function loadWorkouts() {
-   let hashed = localStorage.getItem('passwordHash') || '';
-   const username = localStorage.getItem('username') || '';
-   // Fallback: if raw password stored (not recommended), compute the SHA
-   if (!hashed) {
-       const pass = localStorage.getItem('password') || '';
-       if (pass && username) {
-           hashed = await hashPassword(pass + username.toLowerCase());
-       }
+   const token = localStorage.getItem('jwt') || '';
+   if (!token) {
+       throw new Error('Not authenticated');
    }
-   if (!hashed) {
-       throw new Error('Missing password hash; please sign in again.');
-   }
+
    try {
-    const response = await fetch(`/api/workouts?hash=${encodeURIComponent(hashed)}`, {
+    const response = await fetch(`/api/workouts`, {
         headers: {
-            'Authorization': `Bearer ${localStorage.getItem('jwt') || ''}`,
+            'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
         }
     });
