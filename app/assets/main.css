@@ -18,6 +18,28 @@
 );
 }
 
+::view-transition-old(root) {
+  animation: 250ms ease-out both slide-out;
+}
+
+::view-transition-new(root) {
+  animation: 350ms cubic-bezier(.22, 1, .36, 1) both slide-in;
+}
+
+@keyframes slide-out {
+  to {
+    opacity: 0;
+    transform: translateY(-12px) scale(.98);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(1.02);
+  }
+}
+
 * {
     box-sizing: border-box;
 }
@@ -102,6 +124,10 @@ body::after {
 .btn.primary, .btn.secondary { will-change: transform, opacity; transform: translateZ(0); }
 .btn.primary:hover{ transform:translateY(-2px);box-shadow:0 12px 26px rgba(79,70,229,0.14) }
 .btn.primary:active{ transform:translateY(0);box-shadow:0 6px 14px rgba(79,70,229,0.10) }
+
+.btn.small { padding:6px 10px; font-size:0.9rem; border-radius:8px }
+.btn.danger { background: transparent; border: 1px solid rgba(255,90,90,0.14); color: #ff4d4d }
+.card-actions{ margin-top:10px; display:flex; justify-content:flex-end }
 
 .error{ color:#c33;margin-top:12px;font-size:0.95rem }
 
@@ -230,7 +256,6 @@ button{ cursor:pointer }
     left: 0;
     right: 0;
     z-index: 60;
-    /* stronger, GPU-friendly blur */
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     background: rgba(255,255,255,0.04);
@@ -259,6 +284,12 @@ button{ cursor:pointer }
 .workout-card h3{ margin:0 0 6px 0;font-size:1rem }
 .workout-card p{ margin:0;color:#444;font-size:0.95rem }
 
+.workout-card{ transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease }
+.workout-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 40px rgba(20,20,60,0.08) }
+
+.card-actions{ margin-top:12px; display:flex; gap:8px; justify-content:flex-end }
+.btn.danger:hover{ background: rgba(255,77,77,0.06); border-color: rgba(255,77,77,0.18) }
+
 .workout-list{ display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px }
 
 /* Add workout form styles */
@@ -267,6 +298,15 @@ button{ cursor:pointer }
 .add-workout-form textarea{ grid-column:1 / -1 }
 .add-workout-form input[type=date]{ padding:8px }
 .add-workout-form .btn{ grid-column:2 / 3; justify-self:end }
+
+/* Stats grid above workouts */
+.stats-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:14px }
+.stat-card{ background: rgba(255,255,255,0.95); padding:12px; border-radius:10px; box-shadow:0 8px 18px rgba(20,20,60,0.04); text-align:left }
+.stat-value{ font-size:1.25rem; font-weight:800; color:var(--accent-2) }
+.stat-label{ font-size:0.85rem; color:var(--muted); margin-top:6px }
+
+@media (max-width:720px){ .stats-grid{ grid-template-columns: repeat(2, 1fr) } }
+@media (max-width:420px){ .stats-grid{ grid-template-columns: 1fr } }
 
 @media (max-width:520px){
     .add-workout-form{ grid-template-columns:1fr; }
@@ -321,13 +361,49 @@ button{ cursor:pointer }
 #addWorkout:hover {
     transform: translateY(-2px);
     box-shadow: 0 12px 26px rgba(0,0,0,.3);
-    filter: brightness(1.3);
+    filter: brightness(1.3) blur(0.5px);
+
 }
 #addWorkout:active {
   animation: popEffect 0.3s ease-out;
 }
 @keyframes popEffect {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.2); } /* Expands outwards */
-  100% { transform: scale(1); }  /* Snaps back to normal */
+  0% {
+    transform: scale(1);
+  }
+
+  12% {
+    transform: scale(0.88); /* Quick press */
+  }
+
+  38% {
+    transform: scale(1.32); /* Big pop */
+  }
+
+  55% {
+    transform: scale(1.12);
+  }
+
+  72% {
+    transform: scale(1.22);
+  }
+
+  88% {
+    transform: scale(0.98);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
+
+/* Hide floating add button (removed from markup) */
+#addWorkout { 
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    background-color: #4635ff;
+    filter:brightness(1) blur(0.2px);
+    color: #FFFF;
+    font-size: 28px;
+ }

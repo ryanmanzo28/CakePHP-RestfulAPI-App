@@ -186,3 +186,30 @@ async function addWorkout({ title, date, duration, notes } = {}) {
 
 // Expose for pages to call directly
 window.addWorkout = addWorkout;
+
+/**
+ * Delete a workout by id via the API. Returns true on success; throws on failure.
+ */
+async function deleteWorkout(id) {
+    const token = localStorage.getItem('jwt') || '';
+    if (!token) throw new Error('Not authenticated');
+    const res = await fetch(`/api/workouts/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+        }
+    });
+    if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        let data = null;
+        try { data = text ? JSON.parse(text) : null; } catch (e) {}
+        const msg = data && (data.error || data.message) ? (data.error || data.message) : `HTTP ${res.status}`;
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+    }
+    return true;
+}
+
+window.deleteWorkout = deleteWorkout;

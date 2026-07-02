@@ -131,6 +131,78 @@ class WorkoutsController extends AppController
         }
     }
 
+    /**
+     * Delete a workout owned by the authenticated user.
+     * URL: DELETE /api/workouts/:id
+     */
+    public function delete($id = null)
+    {
+        $id = (int)$id;
+        if ($id <= 0) {
+            return $this->response->withStatus(400)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid id']));
+        }
+
+        $header = $this->request->getHeaderLine('Authorization');
+        $token = null;
+        if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $m)) {
+            $token = $m[1];
+        }
+        if (!$token) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Missing or invalid Authorization header']));
+        }
+
+        try {
+            $secret = getenv('JWT_SECRET') ?: 'change_me';
+            $payload = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secret, 'HS256'));
+            $userId = (int)($payload->sub ?? 0);
+            if ($userId <= 0) {
+                return $this->response->withStatus(401)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Invalid token payload']));
+            }
+
+            $workouts = $this->fetchTable('Workouts');
+            try {
+                $entity = $workouts->get($id);
+            } catch (\Throwable $e) {
+                return $this->response->withStatus(404)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Not found']));
+            }
+
+            if ((int)($entity->user_id ?? 0) !== $userId) {
+                return $this->response->withStatus(403)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Forbidden']));
+            }
+
+            if ($workouts->delete($entity)) {
+                return $this->response->withType('application/json')->withStringBody(json_encode(['deleted' => true]));
+            }
+
+            throw new \RuntimeException('Failed to delete');
+        } catch (\Throwable $e) {
+            // Fallback to PDO delete
+            try {
+                $host = getenv('DB_HOST') ?: 'localhost';
+                $db = getenv('DB_NAME') ?: 'cakephp';
+                $user = getenv('DB_USER') ?: 'root';
+                $pass = getenv('DB_PASS') ?: '';
+                $charset = 'utf8mb4';
+                $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+                $pdo = new \PDO($dsn, $user, $pass, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+                $stmt = $pdo->prepare('DELETE FROM workouts WHERE id = :id AND user_id = :uid');
+                $stmt->execute(['id' => $id, 'uid' => $userId ?? 0]);
+                $count = $stmt->rowCount();
+                if ($count) {
+                    return $this->response->withType('application/json')->withStringBody(json_encode(['deleted' => true]));
+                }
+                return $this->response->withStatus(404)->withType('application/json')->withStringBody(json_encode(['error' => 'Not found']));
+            } catch (\Throwable $_) {
+                return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
+            }
+        }
+    }
+
     protected function pdoQueryWorkoutsByHash(string $hash): array
     {
         $host = (function_exists('env') ? env('DB_HOST') : getenv('DB_HOST')) ?: 'localhost';
