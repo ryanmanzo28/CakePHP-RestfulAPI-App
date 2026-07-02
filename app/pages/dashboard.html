@@ -58,9 +58,17 @@
                     <button id="addWorkout" class="btn primary" style="margin-top:16px;">+</button>
                 </section>
 
-                <section class="dashboard-grid">
-                    <div id="workoutList" class="workout-list"></div>
-                </section>
+                <div class="dashboard-columns">
+                    <section class="main-column">
+                        <div class="dashboard-grid">
+                            <div id="workoutList" class="workout-list"></div>
+                        </div>
+                    </section>
+                    <aside class="past-column">
+                        <h3 class="small">Past Workouts</h3>
+                        <div id="pastWorkouts" class="past-list"></div>
+                    </aside>
+                </div>
             </div>
         </main>
 
@@ -287,6 +295,7 @@
                         }
                     } catch (e) { /* ignore */ }
                     renderWorkouts(workouts);
+                    renderPastWorkouts(workouts);
                 }
 
                 // initial render and a retry to pick up DB-saved items
@@ -364,6 +373,38 @@
                     document.getElementById('modalClose').onclick = closeWorkoutModal;
                 }
                 function closeWorkoutModal(){ const modal=document.getElementById('workoutModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try { document.body.classList.remove('modal-open'); } catch(e){} }
+
+                // Past workouts rendering: shows recent completed items with total weight
+                function parseNumber(s){ if(s===null||s===undefined) return 0; if(typeof s==='number') return s; const m = String(s).match(/(-?\d+\.?\d*)/); return m? parseFloat(m[1]) : 0; }
+                function computeTotalWeightFor(w){ try{
+                    const dd = w.data ? (typeof w.data==='string'? JSON.parse(w.data): w.data) : (w.exercises? { exercises: w.exercises } : {});
+                    if(!dd || !Array.isArray(dd.exercises)) return 0;
+                    let total = 0;
+                    for(const ex of dd.exercises){ const reps = parseInt(ex.reps||0,10) || 0; const wt = parseNumber(ex.weight || dd.weight || 0); total += reps * wt; }
+                    return total;
+                }catch(e){ return 0; } }
+
+                function renderPastWorkouts(workouts){
+                    const el = document.getElementById('pastWorkouts'); if(!el) return;
+                    // sort by date desc (most recent first); fallback to created
+                    const sorted = workouts.slice().sort((a,b)=>{ const ta=Date.parse(a.date||a.created||0)||0; const tb=Date.parse(b.date||b.created||0)||0; return tb-ta; });
+                    el.innerHTML='';
+                    const max = 8;
+                    let count = 0;
+                    for(const w of sorted){ if(count++>=max) break; const card = document.createElement('div'); card.className='past-card'; const when = document.createElement('div'); when.className='small muted'; when.textContent = w.date || (w.created? new Date(w.created).toLocaleDateString() : ''); card.appendChild(when);
+                        const title = document.createElement('div'); title.className='past-title'; title.textContent = w.title || w.name || 'Workout'; card.appendChild(title);
+                        const dd = w.data ? (typeof w.data==='string'? JSON.parse(w.data): w.data) : (w.exercises? { exercises: w.exercises, sets: w.sets } : {});
+                        const meta = document.createElement('div'); meta.className='small muted'; const parts = [];
+                        if(dd && dd.sets) parts.push(`${dd.sets} sets`);
+                        if(Array.isArray(dd.exercises) && dd.exercises.length) parts.push(`${dd.exercises.length} exercises`);
+                        const total = computeTotalWeightFor(w);
+                        if(total) parts.push(`Total ${total}${(dd && dd.weightUnit)? dd.weightUnit : ' lb'}`);
+                        meta.textContent = parts.join(' • ');
+                        card.appendChild(meta);
+                        el.appendChild(card);
+                    }
+                    if(sorted.length===0){ el.textContent='No past workouts yet.'; }
+                }
             });
 
             function escapeHtml(s) {

@@ -158,7 +158,7 @@
       function elapsedSeconds(){ if(sessionState.paused){ return Math.floor((sessionState.pausedAt - sessionState.startTs - sessionState.elapsedPaused)/1000); } return Math.floor((Date.now() - sessionState.startTs - sessionState.elapsedPaused)/1000); }
       const ringFg = document.querySelector('.ring-fg');
       const RING_CIRC = 2 * Math.PI * 64; // ~402
-      function advanceExercise(){
+      async function advanceExercise(){
         // moves to next exercise (internal helper)
         const prevIdx = sessionState.curIdx;
         try{ markDoneAnimation(prevIdx); }catch(e){}
@@ -301,6 +301,13 @@
 
       // initial render
       renderExercises(); updateUI();
+      // ensure session has a start timestamp and start the ticker if not paused
+      try{
+        if(!sessionState.startTs) { sessionState.startTs = Date.now(); saveSession(); }
+        if(!sessionState.paused) startTicker();
+        // update immediately so timer shows 00:00 or current elapsed without waiting for interval
+        updateTimer();
+      }catch(e){ console.warn('Timer init failed', e); }
 
       // set up buttons with icons and titles
       const prev = document.getElementById('prevEx'); if(prev){ prev.innerHTML = '<span class="icon">←</span><span>Prev</span>'; prev.title = 'Previous exercise'; }
@@ -316,9 +323,9 @@
       // when exercise completes, mark previous as done briefly
       function markDoneAnimation(prevIdx){ const row = exerciseList.children[prevIdx]; if(!row) return; row.classList.add('pulse-done'); setTimeout(()=>{ row.classList.remove('pulse-done'); row.classList.add('done'); }, 320); }
 
-      // ensure UI reflects paused state button label
-      document.getElementById('pauseResume').textContent = sessionState.paused ? 'Resume' : 'Pause';
-      const stickyPauseInit = document.getElementById('stickyPause'); if(stickyPauseInit) stickyPauseInit.textContent = sessionState.paused ? 'Resume' : 'Pause';
+      // ensure UI reflects paused state button label (use innerHTML to keep icons)
+      const pauseElInit = document.getElementById('pauseResume'); if(pauseElInit) pauseElInit.innerHTML = sessionState.paused ? '<span class="icon">▶</span><span>Resume</span>' : '<span class="icon">⏸</span><span>Pause</span>';
+      const stickyPauseInit = document.getElementById('stickyPause'); if(stickyPauseInit) stickyPauseInit.innerHTML = sessionState.paused ? '<span class="icon">▶</span><span>Resume</span>' : '<span class="icon">⏸</span><span>Pause</span>';
     })();
     </script>
   </body>
