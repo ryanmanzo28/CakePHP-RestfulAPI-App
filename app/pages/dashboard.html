@@ -25,6 +25,7 @@
 
                 <div class="dashboard-actions">
                     <div class="user-info small">Signed in as <strong id="username"></strong></div>
+                    <button id="settingsBtn" class="btn">Settings</button>
                     <button id="logout" class="btn secondary">Logout</button>
                 </div>
             </div>
@@ -36,30 +37,40 @@
                     <div class="row-between">
                         <h2>Your Workouts</h2>
                         <div style="display:flex;gap:8px;align-items:center">
-                            <div id="workoutCount" class="small muted">0 workouts</div>
+                            <div class="small muted">Browse your saved workouts</div>
                         </div>
                     </div>
                     <div id="error" role="alert" class="error"></div>
                 </section>
 
-                <section class="stats-grid" aria-hidden="false">
-                    <div class="stat-card">
-                        <div class="stat-value" id="statTotal">0</div>
-                        <div class="stat-label">Total Workouts</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="statRecent">0</div>
-                        <div class="stat-label">Last 7 Days</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-value" id="statAvg">—</div>
-                        <div class="stat-label">Avg Duration</div>
-                    </div>
-                    <button id="addWorkout" class="btn primary" style="margin-top:16px;">+</button>
-                </section>
+                <!-- stats will be rendered inside the main column for a cleaner two-column layout -->
 
                 <div class="dashboard-columns">
                     <section class="main-column">
+                        <div class="main-controls" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
+                            <div style="display:flex;flex-direction:column">
+                                <div style="display:flex;align-items:center;gap:12px">
+                                    <div class="stat-card" style="padding:10px 12px;min-width:120px">
+                                        <div class="stat-value" id="statTotal">0</div>
+                                        <div class="stat-label">Total</div>
+                                    </div>
+                                    <div class="stat-card" style="padding:10px 12px;min-width:120px">
+                                        <div class="stat-value" id="statRecent">0</div>
+                                        <div class="stat-label">7d</div>
+                                    </div>
+                                    <div class="stat-card" style="padding:10px 12px;min-width:120px">
+                                        <div class="stat-value" id="statAvg">—</div>
+                                        <div class="stat-label">Avg</div>
+                                    </div>
+                                </div>
+                                <div class="small muted" id="workoutCount" style="margin-top:8px">0 workouts</div>
+                            </div>
+                            <div style="display:flex;gap:8px;align-items:center">
+                                <input id="workoutSearch" class="search" placeholder="Search workouts" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(20,20,60,0.06);width:240px" />
+                                <button id="addWorkout" class="btn primary">Add</button>
+                            </div>
+                        </div>
+
                         <div class="dashboard-grid">
                             <div id="workoutList" class="workout-list"></div>
                         </div>
@@ -87,6 +98,24 @@
                     </div>
                 </div>
 
+                <!-- Settings modal -->
+                <div id="settingsModal" class="modal-overlay" aria-hidden="true">
+                    <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Settings">
+                        <button id="settingsClose" class="btn small" style="position:absolute;right:12px;top:12px">Close</button>
+                        <h2>Settings</h2>
+                        <div style="margin-top:8px">
+                            <label class="small">Preferred weight unit</label>
+                            <div style="display:flex;gap:12px;margin-top:8px">
+                                <label><input type="radio" name="unit" value="lb" /> lb</label>
+                                <label><input type="radio" name="unit" value="kg" /> kg</label>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px">
+                            <button id="settingsSave" class="btn primary">Save</button>
+                        </div>
+                    </div>
+                </div>
+
         <script src="../main.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', async function () {
@@ -104,6 +133,11 @@
                     localStorage.removeItem('passwordHash');
                     window.location.href = 'login.html';
                 });
+
+                // settings button
+                const settingsBtn = document.getElementById('settingsBtn'); if(settingsBtn) settingsBtn.addEventListener('click', function(){ openSettings(); });
+                const settingsClose = document.getElementById('settingsClose'); if(settingsClose) settingsClose.addEventListener('click', function(){ closeSettings(); });
+                const settingsSave = document.getElementById('settingsSave'); if(settingsSave) settingsSave.addEventListener('click', function(){ saveSettings(); });
 
                 // Ensure add button always navigates to add page, even if later code errors
                 const earlyAddBtn = document.getElementById('addWorkout');
@@ -123,6 +157,7 @@
 
                 const list = document.getElementById('workoutList');
                 const countEl = document.getElementById('workoutCount');
+                let latestWorkouts = [];
 
                 function formatDuration(d) {
                     if (d === null || d === undefined || d === '') return '';
@@ -268,6 +303,7 @@
                 async function refreshWorkouts() {
                     const serverWorkouts = await loadWorkouts() || [];
                     let workouts = serverWorkouts.slice();
+                    latestWorkouts = workouts.slice();
                     try {
                         const raw = sessionStorage.getItem('hc:newWorkout');
                         if (raw) {
@@ -323,6 +359,17 @@
                     document.getElementById('error').textContent = e.message || 'Failed to load workouts';
                 }
 
+                // wire search filtering
+                const searchInput = document.getElementById('workoutSearch');
+                if(searchInput){
+                    searchInput.addEventListener('input', function(){
+                        const q = (this.value||'').toLowerCase().trim();
+                        if(!q){ renderWorkouts(latestWorkouts); renderPastWorkouts(latestWorkouts); return; }
+                        const filtered = (latestWorkouts||[]).filter(w=>{ const t = (w.title||'').toLowerCase(); const n = (w.notes||'').toLowerCase(); const ex = w.data && w.data.exercises ? JSON.stringify(w.data.exercises).toLowerCase() : (w.exercises? JSON.stringify(w.exercises).toLowerCase() : ''); return t.includes(q) || n.includes(q) || ex.includes(q); });
+                        renderWorkouts(filtered); renderPastWorkouts(filtered);
+                    });
+                }
+
                 // simple snackbar helper
                 function showUndoSnackbar(text, actionText, onAction) {
                     let sb = document.getElementById('snackbar');
@@ -374,6 +421,12 @@
                 }
                 function closeWorkoutModal(){ const modal=document.getElementById('workoutModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try { document.body.classList.remove('modal-open'); } catch(e){} }
 
+                // Settings modal for user preferences
+                function openSettings(){ const modal = document.getElementById('settingsModal'); if(!modal) return; modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); try{ document.body.classList.add('modal-open'); }catch(e){}; const cur = localStorage.getItem('hc:weightUnit') || 'lb'; const r = modal.querySelector(`input[name="unit"][value="${cur}"]`); if(r) r.checked = true; }
+                function closeSettings(){ const modal=document.getElementById('settingsModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try{ document.body.classList.remove('modal-open'); }catch(e){} }
+
+                function saveSettings(){ const modal = document.getElementById('settingsModal'); if(!modal) return; const v = modal.querySelector('input[name="unit"]:checked'); const unit = v ? v.value : 'lb'; try{ localStorage.setItem('hc:weightUnit', unit); }catch(e){} closeSettings(); renderPastWorkouts(latestWorkouts); }
+
                 // Past workouts rendering: shows recent completed items with total weight
                 function parseNumber(s){ if(s===null||s===undefined) return 0; if(typeof s==='number') return s; const m = String(s).match(/(-?\d+\.?\d*)/); return m? parseFloat(m[1]) : 0; }
                 function computeTotalWeightFor(w){ try{
@@ -398,7 +451,22 @@
                         if(dd && dd.sets) parts.push(`${dd.sets} sets`);
                         if(Array.isArray(dd.exercises) && dd.exercises.length) parts.push(`${dd.exercises.length} exercises`);
                         const total = computeTotalWeightFor(w);
-                        if(total) parts.push(`Total ${total}${(dd && dd.weightUnit)? dd.weightUnit : ' lb'}`);
+                        // prefer user setting for unit, then workout data unit, fallback to 'lb'
+                        const userUnit = localStorage.getItem('hc:weightUnit');
+                        const unit = userUnit || (dd && dd.weightUnit) || 'lb';
+                        if(total){
+                            // convert if source unit differs from preferred (assume source lb if unspecified)
+                            const sourceUnit = (dd && dd.weightUnit) || 'lb';
+                            let displayTotal = total;
+                            if(sourceUnit !== unit){
+                                const LB_TO_KG = 0.45359237;
+                                if(sourceUnit === 'lb' && unit === 'kg') displayTotal = total * LB_TO_KG;
+                                else if(sourceUnit === 'kg' && unit === 'lb') displayTotal = total / LB_TO_KG;
+                            }
+                            // format: round to 1 decimal if fractional
+                            const formatted = (Math.abs(displayTotal - Math.round(displayTotal)) > 0.05) ? displayTotal.toFixed(1) : String(Math.round(displayTotal));
+                            parts.push(`Total ${formatted} ${unit}`);
+                        }
                         meta.textContent = parts.join(' • ');
                         card.appendChild(meta);
                         el.appendChild(card);

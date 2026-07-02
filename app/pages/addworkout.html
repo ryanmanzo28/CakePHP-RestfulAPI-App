@@ -67,6 +67,7 @@
             </div>
 
             <div id="cwPreview" class="cw-preview" aria-live="polite" style="margin-top:12px"></div>
+            <div id="cwChanges" class="small muted" style="margin-top:8px"></div>
 
             <input id="durationField" type="hidden" name="duration">
             <div class="cw-actions"><div id="cwError" class="error"></div><button class="btn primary" type="submit">Save Workout</button></div>
@@ -136,6 +137,8 @@
           // add weight unit selector
           const lblU = document.createElement('label'); lblU.className='cw-label'; lblU.textContent='Weight unit';
           const sel = document.createElement('select'); sel.id='weightUnit'; sel.className='cw-input'; ['kg','lb'].forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent=u; sel.appendChild(o); });
+          // preselect user preference if available
+          try{ const pref = localStorage.getItem('hc:weightUnit'); if(pref) sel.value = pref; }catch(e){}
           typeFields.appendChild(lblU); typeFields.appendChild(sel);
         } else {
           // other types: keep default fields
@@ -220,8 +223,52 @@
       const handleHit = svg.querySelector('.cw-handle-hit');
       if(handleHit){ handleHit.style.cursor = 'grab'; handleHit.addEventListener('mousedown', function(){ handleHit.style.cursor='grabbing'; }); window.addEventListener('mouseup', function(){ handleHit.style.cursor='grab'; }); }
       drawTicks(); update(-90 + 45/2);
-      // add one empty exercise by default
-      addExercise();
+
+      // If we're editing an existing workout, prefill the form from sessionStorage
+      function parseDurationString(s){ if(!s) return 0; s = String(s); const h = (s.match(/(\d+)\s*h/)||[])[1] || 0; const m = (s.match(/(\d+)\s*m/)||[])[1] || 0; if(h||m) return (parseInt(h,10)||0)*60 + (parseInt(m,10)||0); const n = parseInt(s,10); return isNaN(n)?0:n; }
+      const rawSelected = sessionStorage.getItem('hc:selectedWorkout');
+      let _originalSelected = null; // keeps original loaded workout for change detection
+      if(rawSelected){
+        try{
+          const sel = JSON.parse(rawSelected);
+          _originalSelected = JSON.parse(JSON.stringify(sel));
+          // populate basic fields
+          if(sel.title) document.getElementById('title').value = sel.title;
+          if(sel.date) document.getElementById('date').value = sel.date;
+          if(sel.notes) document.getElementById('notes').value = sel.notes || '';
+          // duration may be stored as number minutes or a string like '1h15m'
+          let durationM = 0;
+          if(sel.duration !== undefined && sel.duration !== null){
+            if(typeof sel.duration === 'number') durationM = Math.max(0, Math.floor(sel.duration));
+            else durationM = parseDurationString(sel.duration);
+          } else if(sel.data && sel.data.duration){ durationM = parseDurationString(sel.data.duration); }
+          if(durationM){ durationField.value = String(durationM); const target = (durationM/2) - 90; animateToAngle(target); }
+          // type and type-specific fields
+          const typeVal = (sel.type) || (sel.data && sel.data.type) || document.getElementById('type').value;
+          if(typeVal){ document.getElementById('type').value = typeVal; renderTypeFields(typeVal); }
+          // sets
+          if(sel.sets !== undefined && sel.sets !== null) { try{ document.getElementById('sets').value = String(sel.sets); }catch(e){} }
+          // distance
+          if(sel.distance !== undefined && (document.getElementById('distance')||{}).id){ try{ document.getElementById('distance').value = sel.distance; }catch(e){} }
+          // weight unit preference in workout data or user preference (renderTypeFields already tried pref)
+          try{ const weightUnitEl = document.getElementById('weightUnit'); const wUnit = (sel.data && sel.data.weightUnit) || sel.weightUnit; if(weightUnitEl && wUnit) weightUnitEl.value = wUnit; }catch(e){}
+          // exercises: clear current list and add from data
+          const exData = (sel.data && Array.isArray(sel.data.exercises)) ? sel.data.exercises : (Array.isArray(sel.exercises)? sel.exercises : []);
+          exList.innerHTML = '';
+          if(Array.isArray(exData) && exData.length){
+            for(const ex of exData){ addExercise(ex); }
+          } else {
+            // no exercises in selected workout — keep one empty row
+            addExercise();
+          }
+          // ensure preview updated
+          updatePreview();
+          // keep `hc:selectedWorkout` until the user saves or cancels so submit knows edit mode
+        }catch(e){ console.warn('Failed to parse selected workout', e); addExercise(); }
+      } else {
+        // add one empty exercise by default
+        addExercise();
+      }
 
       // submit
       // preview helper
@@ -231,7 +278,7 @@
         const date = document.getElementById('date').value;
         const durationM = parseInt(durationField.value||'0',10)||0;
         const dist = (document.getElementById('distance')||{}).value||'';
-        const weightUnit = (document.getElementById('weightUnit')||{}).value || 'kg';
+        const weightUnit = (localStorage.getItem('hc:weightUnit')) || (document.getElementById('weightUnit')||{}).value || 'kg';
         const exs = Array.from(exList.children).map(r=>{
           const name = (r.querySelector('.ex-name')||{value:''}).value;
           const reps = (r.querySelector('.ex-reps')||{value:0}).value;
@@ -247,6 +294,54 @@
         // enable submit only when title and either duration>0 or distance provided
         const btn = document.querySelector('#cwForm button[type=submit]');
         if (btn) btn.disabled = !(title && (durationM>0 || dist));
+
+        // compute and display changed fields if editing
+        const changesEl = document.getElementById('cwChanges');
+        try{
+          const rawSel = sessionStorage.getItem('hc:selectedWorkout');
+          if(rawSel){
+            const sel = JSON.parse(rawSel);
+            const diff = computeChanges(sel, { title, date, duration: durationM, notes: (document.getElementById('notes')||{}).value || '', type, sets: parseInt((document.getElementById('sets')||{}).value||'0',10)||0, distance: dist || null, weightUnit: (document.getElementById('weightUnit')||{}).value || null, exercises: exs });
+            if(diff.changed && diff.changed.length) {
+              changesEl.textContent = 'Changes: ' + diff.changed.join(', ');
+            } else { changesEl.textContent = ''; }
+          } else { if(changesEl) changesEl.textContent = ''; }
+        }catch(e){ if(changesEl) changesEl.textContent = ''; }
+      }
+
+      // computeChanges: returns { changed: [fields], values: {field: value} }
+      function computeChanges(orig, cur){
+        const changed = [];
+        const values = {};
+        if(!orig) return { changed: [], values: {} };
+        function normStr(v){ return v===null||v===undefined? '': String(v); }
+        if(normStr(orig.title) !== normStr(cur.title)){ changed.push('title'); values.title = cur.title; }
+        if(normStr(orig.date) !== normStr(cur.date)){ changed.push('date'); values.date = cur.date; }
+        if(normStr(orig.notes) !== normStr(cur.notes)){ changed.push('notes'); values.notes = cur.notes; }
+        // duration: compare minutes
+        const origDur = (orig.duration!==undefined && orig.duration!==null) ? (typeof orig.duration==='number'? orig.duration : parseDurationString(orig.duration)) : (orig.data && orig.data.duration? parseDurationString(orig.data.duration) : 0);
+        const curDur = Number(cur.duration||0);
+        if(Number(origDur) !== Number(curDur)){ changed.push('duration'); values.duration = curDur; }
+        // type
+        const origType = orig.type || (orig.data && orig.data.type) || '';
+        if(normStr(origType) !== normStr(cur.type)){ changed.push('type'); values.type = cur.type; }
+        // sets
+        const origSets = (orig.sets !== undefined && orig.sets !== null) ? Number(orig.sets) : (orig.data && orig.data.sets ? Number(orig.data.sets) : 0);
+        if(Number(origSets) !== Number(cur.sets)){ changed.push('sets'); values.sets = cur.sets; }
+        // distance
+        const origDist = (orig.distance !== undefined && orig.distance !== null) ? Number(orig.distance) : (orig.data && orig.data.distance ? Number(orig.data.distance) : null);
+        const curDist = cur.distance !== null && cur.distance !== undefined && cur.distance !== '' ? Number(cur.distance) : null;
+        if((origDist || 0) !== (curDist || 0)) { changed.push('distance'); values.distance = curDist; }
+        // weightUnit
+        const origWU = (orig.data && orig.data.weightUnit) || orig.weightUnit || null;
+        if((origWU||'') !== (cur.weightUnit||'')){ changed.push('weightUnit'); values.weightUnit = cur.weightUnit; }
+        // exercises: deep compare by normalized array
+        const normEx = function(arr){ if(!Array.isArray(arr)) return []; return arr.map(e=>({ name: String(e.name||'').trim(), reps: Number(e.reps||0)||0, weight: (e.weight===undefined||e.weight===null)? null : Number(e.weight||0) })); };
+        const oEx = normEx((orig.data && orig.data.exercises) || orig.exercises || []);
+        const cEx = normEx(cur.exercises || []);
+        const exSame = (oEx.length === cEx.length) && oEx.every((oe, i) => oe.name === cEx[i].name && oe.reps === cEx[i].reps && ( (oe.weight===null && cEx[i].weight===null) || oe.weight === cEx[i].weight ));
+        if(!exSame){ changed.push('exercises'); values.exercises = cEx; }
+        return { changed, values };
       }
 
       document.getElementById('cwForm').addEventListener('input', updatePreview);
@@ -286,15 +381,34 @@
         const durationM = parseInt(durationField.value || '0', 10) || 0;
         const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Saving…';
         try {
-          const created = await window.addWorkout({ title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
-          try {
-            // store a merged optimistic object so dashboard can render details even if server returns minimal object
-            const saved = Object.assign({}, created || {}, { title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
-            // always mark optimistic saved item as local so dashboard keeps it until the server confirms persistence
-            saved._local = true;
-            sessionStorage.setItem('hc:newWorkout', JSON.stringify(saved));
-          } catch (e) { /* ignore */ }
-          window.location.href = 'dashboard.html';
+          // if editing an existing workout, prefer update flow
+          const rawSel = sessionStorage.getItem('hc:selectedWorkout');
+          if (rawSel) {
+            const sel = JSON.parse(rawSel);
+            // compute only changed fields to send
+            const diff = computeChanges(sel, { title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
+            if(!diff.changed || !diff.changed.length){
+              // nothing changed
+              try{ sessionStorage.removeItem('hc:selectedWorkout'); }catch(e){}
+              window.location.href = 'dashboard.html';
+              return;
+            }
+            const payload = Object.assign({}, diff.values);
+            const updated = await window.updateWorkout(sel.id || sel._id || sel._local_id || sel.localId || sel.uuid, payload);
+            // clear selected marker to avoid accidental re-edit
+            try{ sessionStorage.removeItem('hc:selectedWorkout'); }catch(e){}
+            window.location.href = 'dashboard.html';
+          } else {
+            const created = await window.addWorkout({ title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
+            try {
+              // store a merged optimistic object so dashboard can render details even if server returns minimal object
+              const saved = Object.assign({}, created || {}, { title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
+              // always mark optimistic saved item as local so dashboard keeps it until the server confirms persistence
+              saved._local = true;
+              sessionStorage.setItem('hc:newWorkout', JSON.stringify(saved));
+            } catch (e) { /* ignore */ }
+            window.location.href = 'dashboard.html';
+          }
         } catch (e) {
           document.getElementById('cwError').textContent = e && e.message ? e.message : 'Save failed';
         } finally {

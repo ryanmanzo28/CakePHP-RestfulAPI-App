@@ -27,3 +27,14 @@ Notes:
 - Backend code is contained in `/api` so it can be developed and installed independently.
 - `api/webroot/index.php` and `api/config/bootstrap.php` are minimal stubs; replace with a full CakePHP bootstrap after you run `composer install`.
 
+Convenience: automated local setup script
+---------------------------------------
+
+A helper script `scripts/setup_local.sh` is provided to build the Docker stack, wait for the database, apply SQL migrations from `api/db/migrations`, and run a simple HTTP smoke test:
+
+```bash
+./scripts/setup_local.sh
+```
+
+This script uses `docker compose` and requires Docker to be installed and running.
+

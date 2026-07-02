@@ -52,7 +52,7 @@
       }
 
       document.getElementById('startWorkout').addEventListener('click', function(){ try{ sessionStorage.setItem('hc:currentWorkout', JSON.stringify(w)); }catch(e){} window.location.href='workout_session.html'; });
-      document.getElementById('editWorkout').addEventListener('click', function(){ window.location.href='addworkout.html'; });
+      document.getElementById('editWorkout').addEventListener('click', function(){ try{ sessionStorage.setItem('hc:selectedWorkout', JSON.stringify(w)); }catch(e){} window.location.href='addworkout.html'; });
     })();
     </script>
   </body>

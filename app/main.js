@@ -226,6 +226,59 @@ async function addWorkout({ title, date, duration, notes, type, sets, exercises,
 window.addWorkout = addWorkout;
 
 /**
+ * Update an existing workout by id. Returns the updated workout object on success.
+ */
+async function updateWorkout(id, { title, date, duration, notes, type, sets, exercises, distance, weightUnit } = {}){
+    const token = localStorage.getItem('jwt') || '';
+    if(!token) throw new Error('Not authenticated');
+
+    function formatDurationValue(d) {
+        if (d === null || d === undefined || d === '') return null;
+        if (typeof d === 'number') {
+            const m = Math.max(0, Math.floor(d));
+            if (m >= 60) { const h = Math.floor(m / 60); const mm = m % 60; return mm ? `${h}h${mm}m` : `${h}h`; }
+            return `${m}m`;
+        }
+        if (/^\d+$/.test(String(d).trim())) return `${String(d).trim()}m`;
+        return String(d);
+    }
+
+    const body = { title, date, duration: formatDurationValue(duration), notes };
+    const dataBlob = {};
+    if (type !== undefined) dataBlob.type = type;
+    if (sets !== undefined) dataBlob.sets = sets;
+    if (exercises !== undefined) dataBlob.exercises = exercises;
+    if (distance !== undefined && distance !== null) dataBlob.distance = distance;
+    if (weightUnit !== undefined) dataBlob.weightUnit = weightUnit;
+    if (Object.keys(dataBlob).length) body.data = dataBlob;
+
+    try{
+        const res = await fetch(`/api/workouts/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(body)
+        });
+        if(!res.ok){
+            const text = await res.text().catch(()=>'');
+            let data = null; try{ data = text? JSON.parse(text) : null; }catch(e){}
+            const msg = data && (data.error || data.message) ? (data.error || data.message) : `HTTP ${res.status}`;
+            throw new Error(msg);
+        }
+        const updated = await res.json().catch(()=>null);
+        return updated || Object.assign({ id }, body);
+    }catch(err){
+        // On failure, throw so caller can surface error and decide optimistic behavior
+        throw err;
+    }
+}
+
+window.updateWorkout = updateWorkout;
+
+/**
  * Delete a workout by id via the API. Returns true on success; throws on failure.
  */
 async function deleteWorkout(id) {
