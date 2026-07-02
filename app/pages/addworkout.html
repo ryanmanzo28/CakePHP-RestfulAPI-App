@@ -1,225 +1,307 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-    
-        <link rel="preload" href="../assets/main.css?v=4" as="style">
-        <link rel="preload" href="../main.js" as="script">
-        <link rel="stylesheet" href="../assets/main.css?v=4" />
-        <title>Add Workout</title>
-    </head>
-    <body>
-        <header class="dashboard-header">
-            <div class="dashboard-header-inner">
-                <div class="brand">
-                    <div class="logo" aria-hidden="true">
-                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="2" y="2" width="20" height="20" rx="6" />
-                            <path d="M7 12h10M7 16h6" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h1 class="dashboard-title">HydraCor</h1>
-                        <div class="tag">Workout Tracker</div>
-                    </div>
-                </div>
-                <div class="dashboard-actions">
-                    <div class="user-info">Signed in as <strong id="username"></strong></div>
-                    <button id="logout" class="btn secondary">Logout</button>
-                </div>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Add Workout — HydraCor</title>
+    <link rel="stylesheet" href="../assets/main.css?v=4">
+  </head>
+  <body class="cw-add-workout">
+    <header class="dashboard-header">
+      <div class="dashboard-header-inner">
+        <div class="brand"><div class="logo" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="6" /><path d="M7 12h10M7 16h6" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h1 class="dashboard-title">HydraCor</h1><div class="tag">Add Workout</div></div></div>
+        <div class="dashboard-actions">
+          <div class="user-info small">Signed in as <strong id="username"></strong></div>
+          <button id="logout" class="btn secondary">Logout</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="cw-container">
+      <div class="cw-card">
+        <div class="cw-right">
+          <form id="cwForm" class="cw-form" novalidate>
+            <div class="cw-header">
+              <div class="cw-title-block">
+                <label for="title" class="cw-label">Title</label>
+                <input id="title" name="title" class="cw-input" placeholder="Workout title" required>
+              </div>
+              <div class="cw-clock-inline" style="position:relative">
+                <svg id="cwClock" viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" tabindex="0" role="slider" aria-label="Duration selector" aria-valuemin="0" aria-valuemax="720" aria-valuenow="45">
+                  <defs>
+                    <filter id="glass" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="4" result="b"/></filter>
+                  </defs>
+                  <g transform="translate(110,110)">
+                    <circle r="56" class="cw-face" />
+                    <g id="cwTicks"></g>
+                    <g id="cwArc"></g>
+                    <g id="cwHandle" transform="rotate(-90)">
+                      <line class="cw-handle-line" x1="52" y1="0" x2="70" y2="0" stroke-linecap="round"/>
+                      <circle class="cw-handle-dot" cx="70" cy="0" r="5" />
+                      <!-- larger invisible hit area for easier dragging -->
+                      <circle class="cw-handle-hit" cx="70" cy="0" r="18" fill="transparent"></circle>
+                    </g>
+                    <circle r="36" class="cw-glass" filter="url(#glass)"></circle>
+                  </g>
+                </svg>
+                <div class="cw-center-display" id="cwDurationDisplay">45m</div>
+              </div>
             </div>
-        </header>
 
-        <main class="dashboard-content">
-            <div class="dashboard-container">
-                <section class="dashboard-overview">
-                    <h2>Add Workout</h2>
-                    <form id="addWorkoutForm" class="add-workout-form" novalidate>
-                        <input id="w_title" name="title" type="text" placeholder="Workout title" required />
-                        <input id="w_date" name="date" type="date" />
-                        <input id="w_duration" name="duration" type="text" placeholder="Duration (e.g. 45m)" />
-                        <textarea id="w_notes" name="notes" placeholder="Notes (optional)" rows="2"></textarea>
-                        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
-                            <button type="submit" class="btn primary">Add</button>
-                        </div>
-                    </form>
-                    <div id="error" role="alert" class="error"></div>
-                </section>
-
-                <section class="dashboard-grid">
-                    <!-- Workout cards inserted here -->
-                    <div id="workoutList" class="workout-list"></div>
-                </section>
+            <div class="cw-grid">
+              <div class="field"><label class="cw-label">Date</label><input id="date" type="date" class="cw-input"></div>
+              <div class="field"><label class="cw-label">Type</label><select id="type" class="cw-input"><option>Strength</option><option>Cardio</option><option>Running</option><option>Climbing</option><option>Mobility</option><option>Yoga</option><option>Other</option></select></div>
+              <div id="cwTypeFields" class="field"></div>
+              <div class="field"><label class="cw-label">Sets</label><input id="sets" type="number" min="1" value="3" class="cw-input"></div>
+              <div class="field"><label class="cw-label">Notes</label><input id="notes" type="text" placeholder="Optional notes" class="cw-input"></div>
             </div>
-        </main>
 
-        <script src="../main.js"></script>
-        <script>
-            document.addEventListener('DOMContentLoaded', async function () {
-                const token = localStorage.getItem('jwt') ?? '';
-                const username = localStorage.getItem('username') || '';
-                if (!token) {
-                    window.location.href = 'login.html';
-                    return;
-                }
+            <div class="cw-exercises">
+              <div class="cw-ex-header"><h4>Exercises</h4><button type="button" id="cwAddEx" class="btn small">Add</button></div>
+              <div id="cwExercisesList" class="cw-ex-list"></div>
+            </div>
 
-                document.getElementById('username').textContent = username;
-                document.getElementById('logout').addEventListener('click', function () {
-                    localStorage.removeItem('jwt');
-                    localStorage.removeItem('username');
-                    localStorage.removeItem('passwordHash');
-                    window.location.href = 'login.html';
-                });
+            <div style="display:flex;gap:8px;align-items:center;margin-top:6px">
+              <div style="margin-left:auto;font-size:12px;color:var(--muted)">Tip: press <strong>Ctrl/Cmd+Enter</strong> to submit</div>
+            </div>
 
-                try {
-                    const workouts = await loadWorkouts();
-                    const list = document.getElementById('workoutList');
-                    // Render workouts using DOM methods to avoid expensive innerHTML reflows
-                    if (!workouts || workouts.length === 0) {
-                        const msg = document.createElement('div');
-                        msg.className = 'workout-card';
-                        msg.textContent = 'No workouts found. Start logging your first session!';
-                        list.innerHTML = '';
-                        list.appendChild(msg);
-                    } else {
-                        // build fragment off-DOM
-                        const frag = document.createDocumentFragment();
-                        for (const w of workouts) {
-                            const card = document.createElement('div');
-                            card.className = 'workout-card';
-                            card.dataset.id = w.id || '';
+            <div id="cwPreview" class="cw-preview" aria-live="polite" style="margin-top:12px"></div>
 
-                            const h = document.createElement('h3');
-                            h.textContent = (w.title || w.name || 'Workout');
-                            card.appendChild(h);
+            <input id="durationField" type="hidden" name="duration">
+            <div class="cw-actions"><div id="cwError" class="error"></div><button class="btn primary" type="submit">Save Workout</button></div>
+          </form>
+        </div>
+      </div>
+    </main>
 
-                            const p = document.createElement('p');
-                            p.textContent = (w.notes || '');
-                            card.appendChild(p);
+    <script src="../main.js"></script>
+    <script>
+    (function(){
+      // basic auth redirect
+      const token = localStorage.getItem('jwt')||'';
+      if(!token) { window.location.href='login.html'; return; }
+      document.getElementById('username').textContent = localStorage.getItem('username')||'';
+      document.getElementById('logout').addEventListener('click', ()=>{ localStorage.removeItem('jwt'); localStorage.removeItem('username'); window.location.href='login.html'; });
 
-                            // actions container
-                            const actions = document.createElement('div');
-                            actions.className = 'card-actions';
-                            const del = document.createElement('button');
-                            del.className = 'btn danger small';
-                            del.textContent = 'Delete';
-                            del.addEventListener('click', async function () {
-                                // keep a copy for undo
-                                const backup = Object.assign({}, w);
-                                // remove from DOM immediately
-                                if (card && card.parentNode) card.parentNode.removeChild(card);
+      // exercises
+      const exList = document.getElementById('cwExercisesList');
+      const exerciseSuggestions = ['Squat','Bench Press','Deadlift','Pull-up','Push-up','Overhead Press','Row','Lunge','Plank','Burpee','Sprint','Cycling'];
+      // create datalist for suggestions
+      const dl = document.createElement('datalist'); dl.id = 'exSuggestions'; exerciseSuggestions.forEach(s=>{ const o = document.createElement('option'); o.value = s; dl.appendChild(o); }); document.body.appendChild(dl);
+      function addExercise(data){
+        const row = document.createElement('div'); row.className = 'cw-ex-row';
+        const n = document.createElement('input'); n.className = 'ex-name'; n.placeholder = 'Exercise name'; n.setAttribute('list','exSuggestions'); n.value = (data && data.name) ? data.name : ''; n.setAttribute('aria-label','Exercise name');
+        const r = document.createElement('input'); r.className = 'ex-reps'; r.type = 'number'; r.placeholder = 'Reps'; r.value = (data && data.reps) ? data.reps : ''; r.setAttribute('aria-label','Reps');
+        row.append(n, r);
+        // if current type is Strength, add weight input
+        const curType = (document.getElementById('type') || {}).value || '';
+        if (curType === 'Strength') {
+          const w = document.createElement('input'); w.className = 'ex-weight'; w.type = 'number'; w.step = '0.5'; w.placeholder = 'Weight'; w.value = (data && data.weight) ? data.weight : ''; w.setAttribute('aria-label','Weight'); row.appendChild(w);
+        }
+        const rem = document.createElement('button'); rem.type = 'button'; rem.className = 'btn small'; rem.textContent = 'Remove'; rem.setAttribute('aria-label','Remove exercise'); rem.addEventListener('click', () => { row.remove(); updatePreview(); });
+        row.appendChild(rem);
+        exList.appendChild(row);
+        // focus the new exercise name for quick entry
+        n.focus();
 
-                                // attempt server delete in background
-                                const deletePromise = window.deleteWorkout(w.id).catch(err => {
-                                    console.warn('Delete failed:', err);
-                                    // if delete failed, we still allow undo to re-add locally
-                                });
+        // Enter adds new exercise from name or reps
+        n.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); addExercise(); } });
+        r.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); addExercise(); } });
+        // update preview on input changes
+        [n, r].concat(Array.from(row.querySelectorAll('.ex-weight'))).forEach(i=>i.addEventListener('input', updatePreview));
+      }
+      document.getElementById('cwAddEx').addEventListener('click', ()=>addExercise());
 
-                                // show undo snackbar — if user clicks, re-create the workout
-                                showUndoSnackbar('Workout deleted', 'Undo', async function () {
-                                    try {
-                                        const recreated = await window.addWorkout(backup);
-                                        // insert recreated card at top
-                                        const list = document.getElementById('workoutList');
-                                        const newCard = document.createElement('div');
-                                        newCard.className = 'workout-card';
-                                        const hh = document.createElement('h3'); hh.textContent = recreated.title || backup.title; newCard.appendChild(hh);
-                                        const pp = document.createElement('p'); pp.textContent = recreated.notes || backup.notes || ''; newCard.appendChild(pp);
-                                        list.insertBefore(newCard, list.firstChild);
-                                    } catch (e) {
-                                        console.error('Undo recreate failed', e);
-                                    }
-                                });
+      // dynamic type-specific fields
+      const typeEl = document.getElementById('type');
+      const typeFields = document.getElementById('cwTypeFields');
+      function renderTypeFields(t) {
+        typeFields.innerHTML = '';
+        // default: show exercises
+        const exSection = document.querySelector('.cw-exercises');
+        if (!exSection) return;
+        exSection.style.display = '';
+        if (!t) return;
+        if (t === 'Cardio' || t === 'Running') {
+          // distance input for runs/cardio
+          const lbl = document.createElement('label'); lbl.className = 'cw-label'; lbl.textContent = 'Distance (km)';
+          const inp = document.createElement('input'); inp.id = 'distance'; inp.type = 'number'; inp.step = '0.01'; inp.className = 'cw-input'; inp.placeholder = 'Distance in kilometers';
+          typeFields.append(lbl, inp);
+          // hide exercises for pure cardio runs
+          exSection.style.display = 'none';
+        } else if (t === 'Strength') {
+          // ensure exercises visible and sets visible; weight inputs will be added on addExercise
+          document.getElementById('sets').closest('.field').style.display = '';
+          // add weight unit selector
+          const lblU = document.createElement('label'); lblU.className='cw-label'; lblU.textContent='Weight unit';
+          const sel = document.createElement('select'); sel.id='weightUnit'; sel.className='cw-input'; ['kg','lb'].forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent=u; sel.appendChild(o); });
+          typeFields.appendChild(lblU); typeFields.appendChild(sel);
+        } else {
+          // other types: keep default fields
+        }
+      }
+      typeEl.addEventListener('change', function(){ renderTypeFields(this.value); });
+      // initialize type fields now
+      renderTypeFields(typeEl.value);
 
-                                // finalize deletion result handled by deletePromise (no-op here)
-                                await deletePromise;
-                            });
-                            actions.appendChild(del);
-                            card.appendChild(actions);
+      // clock logic (snaps to 5min, max 12h / 720min)
+      const svg = document.getElementById('cwClock');
+      const ticks = svg.querySelector('#cwTicks');
+      const arc = svg.querySelector('#cwArc');
+      const handle = svg.querySelector('#cwHandle');
+      const display = document.getElementById('cwDurationDisplay');
+      const durationField = document.getElementById('durationField');
+      let dragging = false;
+      let angle = -90;
+      const MAX_MINS = 720; // 12 hours
+      // inline clock radius (matches SVG small version)
+      const CLOCK_R = 56;
+      function polar(r, deg) { const a = deg * Math.PI / 180; return { x: r * Math.cos(a), y: r * Math.sin(a) }; }
+      function drawTicks() {
+        ticks.innerHTML = '';
+        for (let i = 0; i < 60; i++) {
+          const ang = -90 + i * 6;
+          const o = polar(CLOCK_R - 8, ang);
+          const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          dot.setAttribute('cx', o.x);
+          dot.setAttribute('cy', o.y);
+          // larger dots every 15 minutes, medium every 5 minutes, small otherwise
+          const r = (i % 15 === 0) ? 3.2 : (i % 5 === 0) ? 2.0 : 0.9;
+          dot.setAttribute('r', r);
+          dot.setAttribute('class', 'cw-dot');
+          ticks.appendChild(dot);
+        }
+      }
+      function drawArc(a) {
+        const r = CLOCK_R;
+        let end = a;
+        while (end < -90) end += 360;
+        while (end > 270) end -= 360;
+        const start = -90;
+        const startP = polar(r, start);
+        const endP = polar(r, end);
+        const large = (end - start) > 180 ? 1 : 0;
+        arc.innerHTML = `<path class="cw-arc" d="M ${startP.x} ${startP.y} A ${r} ${r} 0 ${large} 1 ${endP.x} ${endP.y}"></path>`;
+      }
+      function angleToMins(a){ let s=(a+90)%360; if(s<0) s+=360; let mins=Math.round(s*2); mins = Math.min(MAX_MINS, Math.round(mins/5)*5); return mins; }
+      function minsToDisplay(m){ if(m>=60){ const h=Math.floor(m/60); const mm=m%60; return mm?`${h}h${mm}m`:`${h}h`; } return `${m}m` }
+      function setAria(mins){ svg.setAttribute('aria-valuenow', String(mins)); svg.setAttribute('aria-valuetext', minsToDisplay(mins)); }
+      function update(a){
+        angle = a;
+        handle.setAttribute('transform', `rotate(${a})`);
+        drawArc(a);
+        const mins = angleToMins(a);
+        display.textContent = minsToDisplay(mins);
+        // store numeric minutes for API submission
+        durationField.value = String(mins);
+        setAria(mins);
+      }
 
-                            frag.appendChild(card);
-                        }
+      // animate the handle to a target angle
+      function animateToAngle(target){ const start=angle; const diff=(target-start); const dur=180; const startTs=performance.now(); function step(ts){ const t=Math.min(1,(ts-startTs)/dur); const eased = 1 - Math.pow(1-t,3); const cur = start + diff*eased; update(cur); if(t<1) requestAnimationFrame(step); else update(target); } requestAnimationFrame(step); }
+      function pageAngle(x,y){ const r=svg.getBoundingClientRect(); const cx=r.left+r.width/2; const cy=r.top+r.height/2; return Math.atan2(y-cy,x-cx)*180/Math.PI; }
+      svg.addEventListener('mousedown', e=>{ dragging=true; update(pageAngle(e.clientX,e.clientY)); }); window.addEventListener('mousemove', e=>{ if(dragging) update(pageAngle(e.clientX,e.clientY)); }); window.addEventListener('mouseup', ()=>{ if(dragging){ // snap to nearest and animate
+        const snapped = angleToMins(angle); const target = (snapped/2) - 90; animateToAngle(target); }
+      dragging=false; });
+      svg.addEventListener('touchstart', e=>{ dragging=true; const t=e.touches[0]; update(pageAngle(t.clientX,t.clientY)); e.preventDefault(); }); window.addEventListener('touchmove', e=>{ if(dragging){ const t=e.touches[0]; update(pageAngle(t.clientX,t.clientY)); } }); window.addEventListener('touchend', ()=>{ // on touch end snap
+        const snapped = angleToMins(angle); const target = (snapped/2) - 90; animateToAngle(target); dragging=false; });
+      // keyboard controls
+      svg.addEventListener('keydown', function(e){ const step=5; let mins = angleToMins(angle); if(e.key==='ArrowUp' || e.key==='ArrowRight'){ mins = Math.min(MAX_MINS, mins + step); e.preventDefault(); } else if(e.key==='ArrowDown' || e.key==='ArrowLeft'){ mins = Math.max(0, mins - step); e.preventDefault(); } else if(e.key==='PageUp'){ mins = Math.min(MAX_MINS, mins + 15); e.preventDefault(); } else if(e.key==='PageDown'){ mins = Math.max(0, mins - 15); e.preventDefault(); } else if(e.key==='Home'){ mins = 0; e.preventDefault(); } else if(e.key==='End'){ mins = MAX_MINS; e.preventDefault(); } else { return; } const target = (mins/2) - 90; animateToAngle(target); });
+      // mouse wheel
+      svg.addEventListener('wheel', function(e){ e.preventDefault(); const delta = Math.sign(e.deltaY); let mins = angleToMins(angle); mins = Math.max(0, Math.min(MAX_MINS, mins + (delta>0?-5:5))); const target = (mins/2) - 90; animateToAngle(target); });
 
-                        // apply in next animation frame for smoother paint
-                        requestAnimationFrame(() => {
-                            list.innerHTML = '';
-                            list.appendChild(frag);
-                        });
-                    }
-                } catch (e) {
-                    document.getElementById('error').textContent = e.message || 'Failed to load workouts';
-                }
+      // inline editable duration (double-click) and +/- buttons
+      function parseDurationInput(v){ v = v.trim(); if(!v) return null; if(v.includes(':')){ const parts=v.split(':').map(p=>parseInt(p,10)||0); const mins = parts.length===2? parts[0]*60 + parts[1] : parts[0]; return Math.max(0, Math.min(MAX_MINS, mins)); } const n=parseInt(v,10); if(isNaN(n)) return null; return Math.max(0, Math.min(MAX_MINS, n)); }
+      function showInlineEditor(){ const rect=display.getBoundingClientRect(); const input=document.createElement('input'); input.type='text'; input.value=display.textContent.replace(/h/,'h ').replace(/m/,'m'); input.style.position='fixed'; input.style.left=(rect.left)+'px'; input.style.top=(rect.top - 4)+'px'; input.style.zIndex=9999; input.style.width=(rect.width+40)+'px'; input.style.padding='6px 8px'; input.style.borderRadius='8px'; input.style.border='1px solid rgba(0,0,0,0.12)'; document.body.appendChild(input); input.focus(); input.select(); function finish(){ const v=input.value.trim(); const mins = parseDurationInput(v.replace(/h/,' ').replace(/m/,' ').replace(/ /g,'')); document.body.removeChild(input); if(mins!==null){ const target = (mins/2) - 90; animateToAngle(target); } }
+      input.addEventListener('blur', finish); input.addEventListener('keydown', function(e){ if(e.key==='Enter'){ finish(); } else if(e.key==='Escape'){ document.body.removeChild(input); } }); }
+      display.addEventListener('dblclick', showInlineEditor);
+      // remove +/- buttons; make handle hit-area cursor and center double-click interactive
+      const handleHit = svg.querySelector('.cw-handle-hit');
+      if(handleHit){ handleHit.style.cursor = 'grab'; handleHit.addEventListener('mousedown', function(){ handleHit.style.cursor='grabbing'; }); window.addEventListener('mouseup', function(){ handleHit.style.cursor='grab'; }); }
+      drawTicks(); update(-90 + 45/2);
+      // add one empty exercise by default
+      addExercise();
 
-                // Add workout form handling
-                const addForm = document.getElementById('addWorkoutForm');
-                const addErr = document.getElementById('error');
-                addForm.addEventListener('submit', async function (ev) {
-                    ev.preventDefault();
-                    addErr.textContent = '';
-                    const title = document.getElementById('w_title').value.trim();
-                    const date = document.getElementById('w_date').value || '';
-                    const duration = document.getElementById('w_duration').value.trim();
-                    const notes = document.getElementById('w_notes').value.trim();
-                    if (!title) { addErr.textContent = 'Please provide a title.'; return; }
+      // submit
+      // preview helper
+      function updatePreview(){
+        const title = document.getElementById('title').value.trim();
+        const type = document.getElementById('type').value;
+        const date = document.getElementById('date').value;
+        const durationM = parseInt(durationField.value||'0',10)||0;
+        const dist = (document.getElementById('distance')||{}).value||'';
+        const weightUnit = (document.getElementById('weightUnit')||{}).value || 'kg';
+        const exs = Array.from(exList.children).map(r=>{
+          const name = (r.querySelector('.ex-name')||{value:''}).value;
+          const reps = (r.querySelector('.ex-reps')||{value:0}).value;
+          const weightEl = r.querySelector('.ex-weight');
+          const weight = weightEl ? (weightEl.value || '') : '';
+          return { name, reps, weight };
+        });
+        const preview = document.getElementById('cwPreview');
+        preview.innerHTML = `<strong>${title||'Untitled'}</strong> • ${type} ${date? '• '+date : ''} ${durationM? '• '+(durationM+'m') : ''}` + (dist? ` • ${dist}km` : '');
+        if (exs.length) {
+          const ul = document.createElement('ul'); ul.style.margin='8px 0 0'; exs.slice(0,5).forEach(e=>{ const li=document.createElement('li'); li.textContent = `${e.name} ${e.reps? '• '+e.reps+' reps':''}` + (e.weight ? ` • ${e.weight}${weightUnit}` : ''); ul.appendChild(li); }); preview.appendChild(ul);
+        }
+        // enable submit only when title and either duration>0 or distance provided
+        const btn = document.querySelector('#cwForm button[type=submit]');
+        if (btn) btn.disabled = !(title && (durationM>0 || dist));
+      }
 
-                    const btn = addForm.querySelector('button[type=submit]');
-                    btn.disabled = true;
-                    btn.textContent = 'Adding…';
-                    try {
-                        const created = await window.addWorkout({ title, date, duration, notes });
-                        // Prepend to list
-                        const list = document.getElementById('workoutList');
-                        const card = document.createElement('div');
-                        card.className = 'workout-card';
-                        const h = document.createElement('h3'); h.textContent = created.title || title; card.appendChild(h);
-                        const p = document.createElement('p'); p.textContent = created.notes || notes || ''; card.appendChild(p);
-                        list.insertBefore(card, list.firstChild);
-                        addForm.reset();
-                        // If this was an optimistic local create, show an undo snackbar
-                        if (created && created._local) {
-                            showUndoSnackbar('Workout added (offline)', 'Undo', () => {
-                                if (card && card.parentNode) card.parentNode.removeChild(card);
-                            });
-                        }
-                    } catch (err) {
-                        addErr.textContent = err && err.message ? err.message : 'Failed to add workout';
-                    } finally {
-                        btn.disabled = false; btn.textContent = 'Add';
-                    }
-                });
-        
-                // simple snackbar helper
-                function showUndoSnackbar(text, actionText, onAction) {
-                    let sb = document.getElementById('snackbar');
-                    if (!sb) {
-                        sb = document.createElement('div');
-                        sb.id = 'snackbar';
-                        sb.className = 'snackbar';
-                        const span = document.createElement('div'); span.id = 'snackbarText'; sb.appendChild(span);
-                        const btn = document.createElement('button'); btn.className = 'action'; btn.id = 'snackbarAction'; sb.appendChild(btn);
-                        document.body.appendChild(sb);
-                    }
-                    document.getElementById('snackbarText').textContent = text;
-                    const actionBtn = document.getElementById('snackbarAction');
-                    actionBtn.textContent = actionText;
-                    actionBtn.onclick = function () {
-                        try { onAction && onAction(); } catch (e) {}
-                        sb.classList.add('hide');
-                    };
-                    sb.classList.remove('hide');
-                    // auto-hide after 6s
-                    setTimeout(() => { if (sb) sb.classList.add('hide'); }, 6000);
-                }
-            });
+      document.getElementById('cwForm').addEventListener('input', updatePreview);
 
-            function escapeHtml(s) {
-                return String(s || '').replace(/[&<>"']/g, function (c) {
-                    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-                });
-            }
-            // Floating add button removed — navigation handled by header/actions
-        </script>
-    </body>
+      
+
+      // Ctrl/Cmd+Enter to submit
+      document.addEventListener('keydown', function(e){ if ((e.ctrlKey||e.metaKey) && e.key === 'Enter') { e.preventDefault(); document.getElementById('cwForm').dispatchEvent(new Event('submit',{cancelable:true})); } });
+
+      document.getElementById('title').focus();
+
+      document.getElementById('cwForm').addEventListener('submit', async function(ev){
+        ev.preventDefault();
+        document.getElementById('cwError').textContent = '';
+        const title = document.getElementById('title').value.trim();
+        if (!title) { document.getElementById('cwError').textContent = 'Please enter a title'; return; }
+        const date = document.getElementById('date').value;
+        const notes = document.getElementById('notes').value;
+        const type = document.getElementById('type').value;
+        const sets = parseInt(document.getElementById('sets').value || '0', 10) || 0;
+        const exercises = [];
+        for (const r of Array.from(exList.children)) {
+          const name = (r.querySelector('.ex-name') || { value: '' }).value.trim();
+          const reps = parseInt((r.querySelector('.ex-reps') || { value: '0' }).value || '0', 10) || 0;
+          const weightEl = r.querySelector('.ex-weight');
+          const weight = weightEl ? (parseFloat(weightEl.value) || 0) : undefined;
+          if (name) {
+            const ex = { name, reps };
+            if (weightEl) ex.weight = weight;
+            exercises.push(ex);
+          }
+        }
+        // if cardio/running, include distance
+        const distanceEl = document.getElementById('distance');
+        const distance = distanceEl ? (distanceEl.value ? parseFloat(distanceEl.value) : null) : null;
+        const weightUnit = (document.getElementById('weightUnit')||{}).value || 'kg';
+        const durationM = parseInt(durationField.value || '0', 10) || 0;
+        const btn = this.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          const created = await window.addWorkout({ title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
+          try {
+            // store a merged optimistic object so dashboard can render details even if server returns minimal object
+            const saved = Object.assign({}, created || {}, { title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
+            // always mark optimistic saved item as local so dashboard keeps it until the server confirms persistence
+            saved._local = true;
+            sessionStorage.setItem('hc:newWorkout', JSON.stringify(saved));
+          } catch (e) { /* ignore */ }
+          window.location.href = 'dashboard.html';
+        } catch (e) {
+          document.getElementById('cwError').textContent = e && e.message ? e.message : 'Save failed';
+        } finally {
+          btn.disabled = false; btn.textContent = 'Save Workout';
+        }
+      });
+    })();
+    </script>
+  </body>
 </html>

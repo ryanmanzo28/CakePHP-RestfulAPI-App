@@ -299,6 +299,76 @@ button{ cursor:pointer }
 .add-workout-form input[type=date]{ padding:8px }
 .add-workout-form .btn{ grid-column:2 / 3; justify-self:end }
 
+/* Cohesive Add Workout page (cw-) */
+.cw-container{padding:28px 36px;max-width:1200px;margin:20px auto;padding-top:88px}
+.cw-card{display:block;gap:0;background:var(--card);border-radius:12px;box-shadow:0 12px 30px rgba(20,20,60,0.07);overflow:hidden;border:1px solid rgba(20,20,60,0.04)}
+.cw-right{padding:22px 28px}
+.cw-clock{display:flex;flex-direction:column;align-items:center;gap:6px}
+.cw-face{fill:var(--card-bg);stroke:rgba(10,10,30,0.04);stroke-width:1}
+.cw-tick{stroke:rgba(10,10,30,0.06);stroke-width:1}
+.cw-arc .cw-arc{stroke:var(--accent);stroke-width:6;fill:none;stroke-linecap:round}
+.cw-handle-line{stroke:var(--accent);stroke-width:4}
+.cw-handle-dot{fill:var(--accent);stroke:#fff;stroke-width:1.5}
+.cw-duration{font-weight:600;text-align:center}
+.cw-duration .muted{font-size:12px;color:var(--muted)}
+.cw-duration-value{font-size:18px}
+
+.cw-form{display:flex;flex-direction:column;gap:18px}
+.cw-header{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:6px}
+.cw-title-block{flex:1}
+.cw-label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+.cw-input{width:100%;padding:10px;border-radius:8px;border:1px solid var(--edge);font-size:15px}
+.cw-input:focus{ outline: none; box-shadow: 0 8px 20px rgba(79,70,229,0.08); border-color: var(--accent) }
+
+.btn[disabled], .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none }
+.btn.primary:disabled { opacity: 0.75 }
+.cw-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cw-exercises{border-top:1px dashed rgba(0,0,0,0.04);padding-top:12px}
+.cw-ex-header{display:flex;align-items:center;justify-content:space-between}
+.cw-ex-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.cw-ex-row{display:flex;gap:8px;align-items:center}
+.cw-ex-row .ex-name{flex:1;padding:10px;border-radius:8px;border:1px solid rgba(220,225,235,0.8);background:#fafbff}
+.cw-ex-row .ex-reps{width:110px;padding:10px;border-radius:8px;border:1px solid rgba(220,225,235,0.8);background:#fafbff}
+
+/* Preview card inside the add workout form */
+.cw-preview{ background: linear-gradient(180deg, rgba(250,250,252,0.9), rgba(244,246,250,0.9)); padding:10px;border-radius:8px;border:1px solid rgba(230,235,245,0.9); color:#223 }
+
+.cw-actions{display:flex;justify-content:space-between;align-items:center;padding-top:8px}
+.cw-actions .error{color:var(--danger);font-size:13px}
+
+@media (max-width:900px){
+  .cw-card{padding:12px}
+  .cw-header{flex-direction:column;align-items:stretch}
+  .cw-clock-inline{align-self:flex-end}
+  .cw-grid{grid-template-columns:1fr}
+}
+
+/* Inline clock sizing */
+.cw-clock-inline{display:flex;flex-direction:column;align-items:center;min-width:120px}
+.cw-clock-inline svg{width:144px;height:144px}
+.cw-duration-inline{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+.cw-center-display{ position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); pointer-events:none; font-weight:900; font-size:18px; color:var(--accent-2); background:transparent }
+.cw-clock-controls{ display:none }
+.cw-handle-hit{ transition: transform .12s ease }
+.cw-handle-hit:hover{ transform: scale(1.07) }
+.cw-clock-inline{ min-width:160px }
+.cw-center-display{ cursor: text }
+.cw-arc .cw-arc{ transition: stroke-dashoffset .18s ease, opacity .12s ease }
+.cw-handle-dot{ transition: transform .12s ease, box-shadow .12s ease }
+.cw-handle-dot:hover{ transform: scale(1.08); box-shadow: 0 6px 14px rgba(79,70,229,0.12) }
+.cw-dot{ transition: opacity .12s linear }
+.cw-glass{ fill: rgba(255,255,255,0.75); stroke: rgba(255,255,255,0.06); }
+.cw-dot{ fill: rgba(10,10,30,0.06) }
+.cw-arc .cw-arc{ stroke: var(--accent-2); stroke-width:5; fill:none; stroke-linecap:round }
+.cw-handle-dot{ fill: var(--accent-2); stroke: #fff; stroke-width:1 }
+.cw-handle-line{ stroke: var(--accent-2); stroke-width:3 }
+
+/* Focus styles for SVG clock */
+#cwClock:focus{ outline: none; box-shadow: 0 6px 18px rgba(79,70,229,0.12); border-radius: 8px }
+
+/* Inline input editor style will be created dynamically; ensure it looks good on dark/light */
+body .cw-inline-duration-input{ padding:6px 8px;border-radius:8px;border:1px solid rgba(0,0,0,0.12); font-size:14px }
+
 /* Stats grid above workouts */
 .stats-grid{ display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:14px }
 .stat-card{ background: rgba(255,255,255,0.95); padding:12px; border-radius:10px; box-shadow:0 8px 18px rgba(20,20,60,0.04); text-align:left }
@@ -307,6 +377,60 @@ button{ cursor:pointer }
 
 @media (max-width:720px){ .stats-grid{ grid-template-columns: repeat(2, 1fr) } }
 @media (max-width:420px){ .stats-grid{ grid-template-columns: 1fr } }
+
+/* Addworkout specific styles */
+.time-picker { width:240px; height:240px; border-radius:12px; overflow:visible; display:flex; align-items:center; justify-content:center }
+.time-picker svg { display:block; overflow: visible }
+.time-picker-row input[type=number], .time-picker-row input[type=text], .time-picker-row select { padding:8px;border-radius:8px;border:1px solid #e9e9f5;background:#fff }
+.time-picker-row label{ display:block;font-size:0.85rem;color:var(--muted);margin-bottom:6px }
+.btn.small { padding:6px 10px;font-size:0.9rem;border-radius:8px }
+.card-actions .btn.small{ padding:6px 8px }
+.exercise-row input { padding:8px;border-radius:8px;border:1px solid #e9e9f5;background:#fff }
+
+/* Larger form layout for add-workout */
+.add-workout-form{ display:grid; grid-template-columns: 320px 1fr; gap:18px; align-items:start }
+.add-workout-form input[type=text], .add-workout-form input[type=date], .add-workout-form select, .add-workout-form input[type=number]{ width:100% }
+@media (max-width:900px){ .add-workout-form{ grid-template-columns: 1fr; } .time-picker { width:200px;height:200px } }
+
+/* clock arc and handle styles */
+.time-picker svg .arc-path { stroke: var(--accent); stroke-width: 10; fill: none; stroke-linecap: round }
+.time-picker svg .tick { stroke: rgba(20,20,60,0.06); stroke-width: 1 }
+.time-picker svg .handle-circle { fill: var(--accent-2); stroke: rgba(255,255,255,0.5); stroke-width:2 }
+.time-picker svg .handle-line { stroke: var(--accent); stroke-width:6; stroke-linecap:round }
+
+/* Make add-workout form occupy the full page under the header */
+.add-workout-page { height: 100vh; display: block !important; }
+.add-workout-page .dashboard-content { padding-top: 88px; min-height: calc(100vh - 88px); }
+.add-workout-page .dashboard-container { max-width: 1100px; width: 100%; margin: 0 auto; padding: 20px; height: calc(100vh - 88px); }
+.add-workout-page .add-workout-form { grid-template-columns: 420px 1fr; gap:28px; height: 100%; width: 100%; }
+.add-workout-page .add-workout-form > div { height: 100%; display:flex; flex-direction:column }
+.add-workout-page #exercisesList { flex: 1 1 auto; overflow: auto; padding:12px 6px 6px 0 }
+.add-workout-page .time-picker { width: 320px; height: 320px }
+.add-workout-page .time-picker svg { width:320px;height:320px }
+
+@media (max-width:900px){ .add-workout-page .add-workout-form{ grid-template-columns: 1fr; height: auto } .add-workout-page .time-picker { width:220px;height:220px } }
+
+/* Full-bleed add-workout layout */
+.add-workout-full .dashboard-header { position: fixed; top: 0; left: 0; right: 0 }
+.add-workout-container { display:flex; gap:0; height: calc(100vh - 68px); margin-top:68px }
+.clock-panel { width:280px; flex: 0 0 280px; display:flex; align-items:center; justify-content:center; border-right:1px solid rgba(0,0,0,0.06); background: linear-gradient(180deg, rgba(250,250,255,0.96), rgba(255,255,255,0.98)); }
+.clock-wrapper { text-align:center; background: var(--card); border-radius:12px; padding:14px; box-shadow: 0 8px 20px rgba(20,20,60,0.04); max-width:240px; margin:6px; }
+.duration-ui { margin-top:12px }
+/* ensure the svg fits inside the wrapper */
+.clock-wrapper svg { max-width:100%; height: auto; display:block }
+.clock-wrapper svg { width:220px; height:auto }
+
+/* reduce visual weight so the form reads as primary */
+.form-panel { flex:1; overflow:auto; padding:36px 48px }
+.form-body { max-width:820px }
+.duration-value { font-weight:800; font-size:1.2rem; color:var(--accent-2) }
+.form-panel { flex:1; overflow:auto; padding:28px 36px }
+.form-body { max-width:900px; margin:0 auto }
+.form-row { margin-bottom:12px }
+.form-row label{ display:block; font-size:0.85rem; color:var(--muted); margin-bottom:6px }
+.form-row input, .form-row select{ width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e9e9f5; background:#fff }
+   /* cleaned up old add-workout-page rules (replaced by add-workout-full) */
+@media (max-width:900px){ .add-workout-container{ flex-direction:column; height:auto; margin-top:88px } .clock-panel{ width:100%; border-right:none; border-bottom:1px solid rgba(0,0,0,0.04); padding:22px 0 } .form-panel{ padding:18px } }
 
 @media (max-width:520px){
     .add-workout-form{ grid-template-columns:1fr; }

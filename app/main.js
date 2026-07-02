@@ -59,13 +59,28 @@ async function loadWorkouts() {
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const workouts = await response.json();
+    const json = await response.json().catch(() => null);
+    // Normalize different response shapes into an array of workout objects
+    let workouts = [];
+    if (Array.isArray(json)) workouts = json;
+    else if (json && Array.isArray(json.data)) workouts = json.data;
+    else if (json && Array.isArray(json.workouts)) workouts = json.workouts;
+    else if (json && json.results && Array.isArray(json.results)) workouts = json.results;
+    else if (json && typeof json === 'object' && json.id) workouts = [json];
+    // parse JSON `data` fields if returned as strings
+    workouts = workouts.map(w => {
+        try {
+            if (w && typeof w.data === 'string') {
+                w.data = JSON.parse(w.data);
+            }
+        } catch (e) { /* ignore parse errors */ }
+        return w;
+    });
     console.log("Workouts loaded successfully:", workouts);
-    return workouts
-    // Here you would typically update the DOM to display the workouts
+    return workouts;
    } catch (error) {
     console.error("Failed to load workouts:", error);
-
+    return [];
    }
 }
 async function loginCheck() {
@@ -151,11 +166,34 @@ async function createAccount(username, email, password) {
  * Add a new workout via the API. Falls back to returning a local object if API not available.
  * Returns the created workout object.
  */
-async function addWorkout({ title, date, duration, notes } = {}) {
+async function addWorkout({ title, date, duration, notes, type, sets, exercises, distance, weightUnit } = {}) {
     const token = localStorage.getItem('jwt') || '';
     if (!token) throw new Error('Not authenticated');
 
-    const body = { title, date, duration, notes };
+    // normalize duration: accept either a number (minutes) or a string.
+    // Backend stores duration as a string like '45m' or '1h15m', so convert numbers to that format.
+    function formatDurationValue(d) {
+        if (d === null || d === undefined || d === '') return null;
+        if (typeof d === 'number') {
+            const m = Math.max(0, Math.floor(d));
+            if (m >= 60) { const h = Math.floor(m / 60); const mm = m % 60; return mm ? `${h}h${mm}m` : `${h}h`; }
+            return `${m}m`;
+        }
+        // if string already looks like a simple number, treat as minutes
+        if (/^\d+$/.test(String(d).trim())) return `${String(d).trim()}m`;
+        return String(d);
+    }
+
+    const body = { title, date, duration: formatDurationValue(duration), notes };
+
+    // Include a `data` JSON blob with richer info (type/sets/exercises) so future schema that supports JSON can use it.
+    const dataBlob = {};
+    if (type !== undefined) dataBlob.type = type;
+    if (sets !== undefined) dataBlob.sets = sets;
+    if (exercises !== undefined) dataBlob.exercises = exercises;
+    if (distance !== undefined && distance !== null) dataBlob.distance = distance;
+    if (weightUnit !== undefined) dataBlob.weightUnit = weightUnit;
+    if (Object.keys(dataBlob).length) body.data = dataBlob;
     try {
         const res = await fetch('/api/workouts', {
             method: 'POST',
@@ -212,4 +250,5 @@ async function deleteWorkout(id) {
     return true;
 }
 
+// Expose delete to pages
 window.deleteWorkout = deleteWorkout;

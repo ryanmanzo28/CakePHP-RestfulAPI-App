@@ -95,6 +95,15 @@ class WorkoutsController extends AppController
             $entity->notes = isset($data['notes']) ? (string)$data['notes'] : null;
             $entity->date = isset($data['date']) && $data['date'] ? $data['date'] : null;
             $entity->duration = isset($data['duration']) ? (string)$data['duration'] : null;
+            // persist structured payload if provided (store as JSON)
+            if (isset($data['data'])) {
+                // ensure JSON encoding
+                try {
+                    $entity->data = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
+                } catch (\Throwable $_) {
+                    $entity->data = null;
+                }
+            }
 
             if ($workouts->save($entity)) {
                 return $this->response->withStatus(201)->withType('application/json')
@@ -114,16 +123,38 @@ class WorkoutsController extends AppController
                 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
                 $options = [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION];
                 $pdo = new \PDO($dsn, $user, $pass, $options);
-                $stmt = $pdo->prepare('INSERT INTO workouts (user_id,title,notes,date,duration,created,modified) VALUES (:uid,:title,:notes,:date,:duration,NOW(),NOW())');
-                $stmt->execute([
-                    'uid' => $userId ?? 0,
-                    'title' => $title ?? '',
-                    'notes' => $data['notes'] ?? null,
-                    'date' => $data['date'] ?? null,
-                    'duration' => $data['duration'] ?? null,
-                ]);
+                // adaptive insert: detect which columns exist and insert only those
+                $colsStmt = $pdo->query('SHOW COLUMNS FROM workouts');
+                $cols = $colsStmt->fetchAll(\PDO::FETCH_COLUMN, 0);
+                $available = array_flip($cols ?: []);
+                $fields = [];
+                $placeholders = [];
+                $params = [];
+                // helper to add field if available
+                $add = function($field, $paramVal) use (&$available, &$fields, &$placeholders, &$params) {
+                    if (isset($available[$field])) {
+                        $fields[] = "`$field`";
+                        $placeholders[] = ":$field";
+                        $params[$field] = $paramVal;
+                    }
+                };
+                $add('user_id', $userId ?? 0);
+                $add('title', $title ?? '');
+                $add('notes', $data['notes'] ?? null);
+                $add('date', $data['date'] ?? null);
+                $add('duration', $data['duration'] ?? null);
+                if (isset($data['data'])) $add('data', is_string($data['data']) ? $data['data'] : json_encode($data['data']));
+                // always set created/modified if present
+                if (isset($available['created'])) { $fields[]='created'; $placeholders[]='NOW()'; }
+                if (isset($available['modified'])) { $fields[]='modified'; $placeholders[]='NOW()'; }
+                $sql = 'INSERT INTO workouts ('.implode(',', $fields).') VALUES ('.implode(',', $placeholders).')';
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
                 $id = (int)$pdo->lastInsertId();
                 $result = ['id' => $id, 'user_id' => $userId, 'title' => $title, 'notes' => $data['notes'] ?? null, 'date' => $data['date'] ?? null, 'duration' => $data['duration'] ?? null];
+                if (isset($data['data'])) {
+                    $result['data'] = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
+                }
                 return $this->response->withStatus(201)->withType('application/json')->withStringBody(json_encode($result));
             } catch (\Throwable $_) {
                 return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
