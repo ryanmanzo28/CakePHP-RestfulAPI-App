@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Workout Detail — HydraCor</title>
+    <link rel="stylesheet" href="../assets/main.css?v=4">
+  </head>
+  <body>
+    <header class="dashboard-header">
+      <div class="dashboard-header-inner">
+        <div class="brand"><div class="logo" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="6" /><path d="M7 12h10M7 16h6" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h1 class="dashboard-title">HydraCor</h1><div class="tag">Workout Details</div></div></div>
+        <div class="dashboard-actions">
+          <div class="user-info small">Signed in as <strong id="username"></strong></div>
+          <button id="back" class="btn secondary">Back</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+      <div class="dashboard-container">
+        <div class="cw-card" style="padding:20px">
+          <h2 id="title">Workout</h2>
+          <div id="meta" class="small muted" style="margin-bottom:12px"></div>
+          <div id="notes" style="margin-bottom:12px;color:#444"></div>
+          <div id="detailList" style="margin-top:8px"></div>
+          <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+            <button id="startWorkout" class="btn primary">Start Workout</button>
+            <button id="editWorkout" class="btn">Edit</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+    (function(){
+      const raw = sessionStorage.getItem('hc:selectedWorkout') || sessionStorage.getItem('hc:currentWorkout');
+      const w = raw ? JSON.parse(raw) : null;
+      document.getElementById('username').textContent = localStorage.getItem('username')||'';
+      document.getElementById('back').addEventListener('click', ()=>{ window.location.href='dashboard.html'; });
+      if(!w){ document.getElementById('title').textContent='No workout'; document.getElementById('detailList').textContent='No data.'; return; }
+      document.getElementById('title').textContent = w.title || 'Workout';
+      document.getElementById('meta').textContent = (w.date? w.date + ' • ' : '') + (w.duration? (w.duration+'m') : '');
+      document.getElementById('notes').textContent = w.notes || '';
+      const data = w.data ? (typeof w.data==='string'? JSON.parse(w.data): w.data) : (w.exercises? {exercises:w.exercises, sets:w.sets}: {});
+      const list = document.getElementById('detailList');
+      if (data.sets) { const d = document.createElement('div'); d.className='small muted'; d.textContent = data.sets + ' sets'; list.appendChild(d); }
+      if (data.distance) { const d = document.createElement('div'); d.className='small muted'; d.textContent = 'Distance: '+data.distance+' km'; list.appendChild(d); }
+      if (Array.isArray(data.exercises)){
+        const ul=document.createElement('ul'); ul.style.marginTop='8px'; data.exercises.forEach(ex=>{ const li=document.createElement('li'); li.textContent = ex.name + (ex.reps? ' • '+ex.reps+' reps':'') + (ex.weight? ' • '+ex.weight+(data.weightUnit||'') : ''); ul.appendChild(li); }); list.appendChild(ul);
+      }
+
+      document.getElementById('startWorkout').addEventListener('click', function(){ try{ sessionStorage.setItem('hc:currentWorkout', JSON.stringify(w)); }catch(e){} window.location.href='workout_session.html'; });
+      document.getElementById('editWorkout').addEventListener('click', function(){ window.location.href='addworkout.html'; });
+    })();
+    </script>
+  </body>
+  </html>

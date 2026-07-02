@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Workout Session — HydraCor</title>
+    <link rel="stylesheet" href="../assets/main.css?v=4">
+  </head>
+  <body class="add-workout-page session-page">
+    <header class="dashboard-header">
+      <div class="dashboard-header-inner">
+        <div class="brand"><div class="logo" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="6" /><path d="M7 12h10M7 16h6" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h1 class="dashboard-title">HydraCor</h1><div class="tag">Session</div></div></div>
+        <div class="dashboard-actions">
+          <div class="user-info small">Signed in as <strong id="username"></strong></div>
+          <button id="endSession" class="btn secondary">End</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-content session-main">
+      <div class="session-left">
+        <div class="session-clock-card session-sidebar">
+          <h3 id="sessionTitle">Workout</h3>
+          <div class="ring-wrap">
+            <div class="ring-visual running" id="ringVisual">
+              <svg viewBox="0 0 160 160" aria-hidden="true">
+                <defs>
+                  <linearGradient id="grad2" x1="0%" x2="100%"><stop offset="0%" stop-color="var(--accent)"/><stop offset="100%" stop-color="var(--accent-2)"/></linearGradient>
+                </defs>
+                <circle cx="80" cy="80" r="64" class="ring-bg" fill="none" stroke-width="10" />
+                <circle cx="80" cy="80" r="64" class="ring-fg" fill="none" stroke-width="10" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402" stroke="url(#grad2)" />
+              </svg>
+              <div class="timer-overlay" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none">
+                <div id="timer" class="session-timer">00:00</div>
+              </div>
+              <div id="restOverlay" class="rest-overlay" aria-hidden="true"><div class="count" id="restCount">5</div></div>
+            </div>
+            <div class="small muted" id="timerHint">Space = next • P = pause • Esc = finish</div>
+            <div class="progress"><div id="progressBar" class="progress-bar" style="width:0%"></div></div>
+            <div class="session-controls">
+              <button id="prevEx" class="btn small">Prev</button>
+              <button id="pauseResume" class="btn">Pause</button>
+              <button id="completeEx" class="btn primary">Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="session-right">
+        <div class="session-heading-row" style="display:flex;justify-content:space-between;align-items:center">
+          <div style="display:flex;flex-direction:column">
+            <h2 id="sessionHeading">Session</h2>
+            <div class="counts small muted" id="sessionCounts">0 / 0</div>
+          </div>
+          <div class="small muted" id="setInfo">Set 1</div>
+        </div>
+        <div id="currentExercise" class="cw-card" style="margin-top:12px">
+          <div class="title" id="curName">Exercise</div>
+          <div class="meta small muted" id="curMeta"></div>
+        </div>
+
+        <div id="exerciseList"></div>
+
+        <div class="session-footer">
+          <div style="flex:1"></div>
+          <button id="finish" class="btn">Finish</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Sticky controls for small screens -->
+    <div class="session-controls-sticky" role="region" aria-label="Session controls">
+      <div class="inner">
+        <button id="stickyPrev" class="btn small">Prev</button>
+        <button id="stickyPause" class="btn">Pause</button>
+        <button id="stickyNext" class="btn primary">Next</button>
+      </div>
+    </div>
+
+    <script src="../main.js"></script>
+    <script>
+    (function(){
+      const token = localStorage.getItem('jwt')||'';
+      if(!token){ window.location.href='login.html'; return; }
+      document.getElementById('username').textContent = localStorage.getItem('username')||'';
+
+      const raw = sessionStorage.getItem('hc:currentWorkout');
+      let workout = null;
+      try { workout = raw ? JSON.parse(raw) : null; } catch(e) { workout = null; }
+      if(!workout){ document.getElementById('sessionHeading').textContent='No workout selected'; document.getElementById('exerciseList').textContent='No workout loaded.'; return; }
+
+      document.getElementById('sessionTitle').textContent = workout.title || 'Workout';
+      const sessionTypeEl = document.getElementById('sessionType'); if(sessionTypeEl) sessionTypeEl.textContent = workout.type || '—';
+      const sessionMetaEl = document.getElementById('sessionMeta'); if(sessionMetaEl) sessionMetaEl.textContent = (workout.date? workout.date + ' • ' : '') + (workout.duration? (workout.duration+'m') : '');
+
+      // prepare exercises and sets
+      const data = workout.data ? (typeof workout.data==='string'? JSON.parse(workout.data): workout.data) : { exercises: workout.exercises || [], sets: workout.sets || workout.sets || 1 };
+      const exercises = Array.isArray(data.exercises) && data.exercises.length ? data.exercises.slice() : (workout.exercises || []);
+      const totalSets = parseInt(data.sets || workout.sets || 1, 10) || 1;
+
+      const exerciseList = document.getElementById('exerciseList');
+      let curSet = 1;
+      let curIdx = 0;
+
+      function renderExercises(){
+        exerciseList.innerHTML='';
+        exercises.forEach((ex, idx)=>{
+          const row = document.createElement('div'); row.className='workout-card'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center';
+          const idxBadge = document.createElement('div'); idxBadge.className = 'index'; idxBadge.textContent = String(idx+1);
+          row.appendChild(idxBadge);
+          const left = document.createElement('div'); left.style.flex='1'; left.innerHTML = `<strong>${ex.name || 'Exercise'}</strong><div class="small muted">${ex.reps? ex.reps + ' reps':''}${ex.weight? ' • '+ex.weight : ''}</div>`;
+          row.appendChild(left);
+          const right = document.createElement('div');
+          // Done button to mark this exercise complete and advance
+          const doneBtn = document.createElement('button'); doneBtn.className = 'btn small done-btn'; doneBtn.textContent = 'Done'; doneBtn.title = 'Mark done and advance';
+          doneBtn.addEventListener('click', function(ev){ ev.stopPropagation(); try{ curIdx = idx; saveSession(); updateUI(); const complete = document.getElementById('completeEx'); if(complete) complete.click(); else advanceExercise(); }catch(e){} });
+          right.appendChild(doneBtn);
+          const dot = document.createElement('div'); dot.className='dot'; dot.style.width='12px'; dot.style.height='12px'; dot.style.borderRadius='50%'; dot.style.background = idx===curIdx ? 'var(--accent-2)' : '#e9eefc'; right.appendChild(dot);
+          row.appendChild(right);
+          row.addEventListener('click', ()=>{ curIdx = idx; updateUI(); });
+          exerciseList.appendChild(row);
+        });
+      }
+
+      // Timer with pause/resume and persistent session state
+      const timerEl = document.getElementById('timer');
+      const progressBar = document.getElementById('progressBar');
+      const curName = document.getElementById('curName');
+      const curMeta = document.getElementById('curMeta');
+      const setInfoLarge = document.getElementById('setInfoLarge');
+
+      const sessionKey = 'hc:sessionState';
+      let sessionState = null;
+      try { sessionState = JSON.parse(sessionStorage.getItem(sessionKey) || 'null'); } catch(e){ sessionState = null; }
+      if (!sessionState || (sessionState && sessionState.workoutId !== (workout.id||workout.title))) {
+        sessionState = {
+          workoutId: workout.id || workout.title,
+          startTs: Date.now(),
+          paused: false,
+          pausedAt: null,
+          elapsedPaused: 0,
+          curIdx: 0,
+          curSet: 1
+        };
+      }
+
+      // rest settings (seconds). Can be made configurable per-workout in future.
+      const restDuration = (workout.restSeconds && Number(workout.restSeconds)) ? Math.max(0, Number(workout.restSeconds)) : 5;
+      let restRemaining = 0;
+      let restInterval = null;
+      const restOverlay = document.getElementById('restOverlay');
+      const restCountEl = document.getElementById('restCount');
+
+      function saveSession(){ try { sessionStorage.setItem(sessionKey, JSON.stringify(sessionState)); } catch(e){} }
+
+      function pad(n){ return n<10? '0'+n : ''+n; }
+      function elapsedSeconds(){ if(sessionState.paused){ return Math.floor((sessionState.pausedAt - sessionState.startTs - sessionState.elapsedPaused)/1000); } return Math.floor((Date.now() - sessionState.startTs - sessionState.elapsedPaused)/1000); }
+      const ringFg = document.querySelector('.ring-fg');
+      const RING_CIRC = 2 * Math.PI * 64; // ~402
+      function advanceExercise(){
+        // moves to next exercise (internal helper)
+        const prevIdx = sessionState.curIdx;
+        try{ markDoneAnimation(prevIdx); }catch(e){}
+        sessionState.curIdx++;
+        if(sessionState.curIdx >= exercises.length){
+          if(sessionState.curSet < totalSets){ sessionState.curSet++; sessionState.curIdx = 0; }
+            else { // finished all sets
+              stopTicker();
+              // build a summary and attempt to persist
+              const summary = {
+                durationSeconds: elapsedSeconds(),
+                setsCompleted: sessionState.curSet,
+                exercisesCompleted: ((sessionState.curSet-1) * exercises.length) + sessionState.curIdx,
+                completedAt: Date.now()
+              };
+              try{
+                // attempt to record completion via API (falls back internally)
+                await window.completeWorkout(workout.id || workout.title, summary);
+              }catch(e){ console.warn('Failed to persist completed session', e); }
+              sessionStorage.removeItem(sessionKey);
+              alert('Workout complete!');
+              window.location.href = 'dashboard.html';
+              return;
+            }
+        }
+        saveSession(); updateUI();
+      }
+
+      function startRestCountdown(){
+        if(!restDuration || restInterval) return; // no rest configured or already resting
+        restRemaining = restDuration;
+        if(restCountEl) restCountEl.textContent = String(restRemaining);
+        if(restOverlay) { restOverlay.classList.add('show'); restOverlay.setAttribute('aria-hidden','false'); }
+        // add pulse
+        const rv = document.getElementById('ringVisual'); if(rv) rv.classList.add('pulse');
+        restInterval = setInterval(()=>{
+          restRemaining--;
+          if(restCountEl) restCountEl.textContent = String(restRemaining);
+          if(restRemaining <= 0){ clearInterval(restInterval); restInterval = null; if(restOverlay){ restOverlay.classList.remove('show'); restOverlay.setAttribute('aria-hidden','true'); } if(rv) rv.classList.remove('pulse'); advanceExercise(); }
+        }, 1000);
+      }
+
+      function cancelRest(){ if(restInterval){ clearInterval(restInterval); restInterval = null; if(restOverlay){ restOverlay.classList.remove('show'); restOverlay.setAttribute('aria-hidden','true'); } const rv = document.getElementById('ringVisual'); if(rv) rv.classList.remove('pulse'); } }
+
+      function updateTimer(){
+        const s = Math.max(0, elapsedSeconds());
+        const mm = Math.floor(s/60);
+        const ss = s%60;
+        timerEl.textContent = pad(mm)+':'+pad(ss);
+        const totalExercises = Math.max(1, exercises.length * totalSets);
+        const completed = ((sessionState.curSet-1) * exercises.length) + sessionState.curIdx;
+        const pct = Math.round((completed / totalExercises) * 100);
+        progressBar.style.width = pct + '%';
+        if(ringFg){ const offset = Math.round(RING_CIRC * (1 - pct/100)); ringFg.style.strokeDashoffset = offset; }
+        const elapsedSmall = document.getElementById('elapsedSmall'); if(elapsedSmall) elapsedSmall.textContent = timerEl.textContent;
+      }
+
+      let timerInterval = null;
+      function startTicker(){ if(timerInterval) return; timerInterval = setInterval(()=>{ updateTimer(); }, 300); }
+      function stopTicker(){ if(timerInterval){ clearInterval(timerInterval); timerInterval = null; } }
+      if(!sessionState.paused) startTicker();
+
+      function updateUI(){
+        // sync from sessionState
+        curIdx = sessionState.curIdx;
+        curSet = sessionState.curSet;
+        document.getElementById('setInfo').textContent = `Set ${curSet} / ${totalSets}`;
+        if(setInfoLarge) setInfoLarge.textContent = `${curSet} / ${totalSets}`;
+        // update current exercise panel
+        const cur = exercises[curIdx] || { name: 'Rest' };
+        curName.textContent = cur.name || 'Exercise';
+        curMeta.textContent = (cur.reps? cur.reps+' reps' : '') + (cur.weight? ' • '+cur.weight : '');
+        // highlight current exercise
+        Array.from(exerciseList.children).forEach((row, idx)=>{ const dot = row.querySelector('.dot'); if(dot){ dot.style.background = idx===curIdx ? 'var(--accent-2)' : '#e9eefc'; } const done = (sessionState.curSet > 1) || (idx < curIdx); row.classList.toggle('current', idx===curIdx); row.classList.toggle('done', !!done); });
+        // ensure current exercise is visible
+        const curRow = exerciseList.children[curIdx]; if(curRow && typeof curRow.scrollIntoView === 'function'){ try{ curRow.scrollIntoView({ behavior: 'smooth', block: 'center' }); }catch(e){} }
+        // update counts display
+        try{
+          const totalExercises = Math.max(1, exercises.length * totalSets);
+          const completed = ((sessionState.curSet-1) * exercises.length) + sessionState.curIdx;
+          const countsEl = document.getElementById('sessionCounts'); if(countsEl) countsEl.textContent = `${Math.min(completed+1,totalExercises)} / ${totalExercises} exercises`;
+        }catch(e){}
+        updateTimer(); saveSession();
+      }
+
+      document.getElementById('completeEx').addEventListener('click', function(){
+        // If a rest is configured, start rest countdown instead of immediately advancing.
+        if(restInterval){ // if already resting, skip rest and advance immediately
+          cancelRest(); advanceExercise(); return;
+        }
+        if(restDuration && restDuration > 0){ startRestCountdown(); return; }
+        // otherwise advance immediately
+        advanceExercise();
+      });
+
+      document.getElementById('prevEx').addEventListener('click', function(){
+        if(sessionState.curIdx>0){ sessionState.curIdx--; }
+        else if(sessionState.curSet>1){ sessionState.curSet--; sessionState.curIdx = exercises.length-1; }
+        saveSession(); updateUI();
+      });
+
+      document.getElementById('pauseResume').addEventListener('click', function(){
+        const pauseBtnEl = document.getElementById('pauseResume');
+        const stickyPauseEl = document.getElementById('stickyPause');
+        if(sessionState.paused){
+          // resume
+          sessionState.elapsedPaused += (Date.now() - sessionState.pausedAt);
+          sessionState.paused = false; sessionState.pausedAt = null; startTicker();
+          if(pauseBtnEl) pauseBtnEl.innerHTML = '<span class="icon">⏸</span><span>Pause</span>';
+          if(stickyPauseEl) stickyPauseEl.textContent = 'Pause';
+        } else {
+          // pause
+          sessionState.paused = true; sessionState.pausedAt = Date.now(); stopTicker();
+          if(pauseBtnEl) pauseBtnEl.innerHTML = '<span class="icon">▶</span><span>Resume</span>';
+          if(stickyPauseEl) stickyPauseEl.textContent = 'Resume';
+        }
+        // toggle visual state
+        const ringVisual = document.getElementById('ringVisual'); if(ringVisual){ ringVisual.classList.toggle('paused', !!sessionState.paused); ringVisual.classList.toggle('running', !sessionState.paused); }
+        saveSession(); updateUI();
+      });
+
+      document.getElementById('finish').addEventListener('click', async function(){
+        if(!confirm('Finish workout early?')) return;
+        stopTicker();
+        const summary = { durationSeconds: elapsedSeconds(), setsCompleted: sessionState.curSet, exercisesCompleted: ((sessionState.curSet-1) * exercises.length) + sessionState.curIdx, completedAt: Date.now() };
+        try{ await window.completeWorkout(workout.id || workout.title, summary); }catch(e){ console.warn('Could not persist finished session', e); }
+        sessionStorage.removeItem(sessionKey);
+        window.location.href='dashboard.html';
+      });
+
+      document.getElementById('endSession').addEventListener('click', function(){ if(confirm('End session and return to dashboard?')){ stopTicker(); window.location.href='dashboard.html'; } });
+
+      // keyboard shortcuts: Space = next, P = pause/resume, Esc = finish
+      document.addEventListener('keydown', function(e){
+        if(e.code === 'Space' && document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return; // don't intercept typing
+        if(e.code === 'Space'){ e.preventDefault(); document.getElementById('completeEx').click(); }
+        if(e.key === 'p' || e.key === 'P'){ document.getElementById('pauseResume').click(); }
+        if(e.key === 'Escape'){ if(confirm('End session and return to dashboard?')){ stopTicker(); window.location.href='dashboard.html'; } }
+      });
+
+      // initial render
+      renderExercises(); updateUI();
+
+      // set up buttons with icons and titles
+      const prev = document.getElementById('prevEx'); if(prev){ prev.innerHTML = '<span class="icon">←</span><span>Prev</span>'; prev.title = 'Previous exercise'; }
+      const pauseBtn = document.getElementById('pauseResume'); if(pauseBtn){ pauseBtn.innerHTML = `<span class="icon">${sessionState.paused ? '▶' : '⏸'}</span><span>${sessionState.paused ? 'Resume' : 'Pause'}</span>`; pauseBtn.title='Pause / Resume'; }
+      const nextBtn = document.getElementById('completeEx'); if(nextBtn){ nextBtn.innerHTML = '<span>Next</span><span class="icon">→</span>'; nextBtn.title='Complete and advance'; }
+      const finishBtn = document.getElementById('finish'); if(finishBtn){ finishBtn.innerHTML = '<span class="icon">✓</span><span>Finish</span>'; finishBtn.title='Finish workout'; }
+
+      // wire sticky control buttons to main controls so they stay in sync
+      const stickyPrev = document.getElementById('stickyPrev'); if(stickyPrev){ stickyPrev.addEventListener('click', ()=>document.getElementById('prevEx').click()); stickyPrev.innerHTML = '<span class="icon">←</span><span>Prev</span>'; }
+      const stickyNext = document.getElementById('stickyNext'); if(stickyNext){ stickyNext.addEventListener('click', ()=>document.getElementById('completeEx').click()); stickyNext.innerHTML = '<span>Next</span><span class="icon">→</span>'; }
+      const stickyPause = document.getElementById('stickyPause'); if(stickyPause){ stickyPause.addEventListener('click', ()=>document.getElementById('pauseResume').click()); stickyPause.innerHTML = pauseBtn ? pauseBtn.innerHTML : (sessionState.paused ? '<span class="icon">▶</span><span>Resume</span>' : '<span class="icon">⏸</span><span>Pause</span>'); }
+
+      // when exercise completes, mark previous as done briefly
+      function markDoneAnimation(prevIdx){ const row = exerciseList.children[prevIdx]; if(!row) return; row.classList.add('pulse-done'); setTimeout(()=>{ row.classList.remove('pulse-done'); row.classList.add('done'); }, 320); }
+
+      // ensure UI reflects paused state button label
+      document.getElementById('pauseResume').textContent = sessionState.paused ? 'Resume' : 'Pause';
+      const stickyPauseInit = document.getElementById('stickyPause'); if(stickyPauseInit) stickyPauseInit.textContent = sessionState.paused ? 'Resume' : 'Pause';
+    })();
+    </script>
+  </body>
+  </html>

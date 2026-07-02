@@ -252,3 +252,54 @@ async function deleteWorkout(id) {
 
 // Expose delete to pages
 window.deleteWorkout = deleteWorkout;
+
+/**
+ * Record a completed workout session. Tries to POST to /api/sessions (preferred),
+ * falls back to POST /api/workouts/:id/complete, and finally to localStorage.
+ * Returns the saved session object (or local fallback object) on success.
+ */
+async function completeWorkout(workoutId, summary = {}){
+    const token = localStorage.getItem('jwt') || '';
+    const payload = Object.assign({}, summary, { workoutId });
+    if (!token){
+        // offline / not authenticated: persist locally
+        try{
+            const key = 'hc:completedSessions';
+            const raw = localStorage.getItem(key); const arr = raw ? JSON.parse(raw) : [];
+            const item = Object.assign({ id: `local-session-${Date.now()}`, created: Date.now() }, payload);
+            arr.push(item); localStorage.setItem(key, JSON.stringify(arr));
+            return item;
+        }catch(e){ throw new Error('Not authenticated and failed to persist locally'); }
+    }
+
+    // try creating a session record
+    try{
+        const res = await fetch('/api/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(payload)
+        });
+        if(res.ok){ const data = await res.json().catch(()=>null); return data || payload; }
+        // try alternate endpoint
+    }catch(e){ /* continue to fallback */ }
+
+    try{
+        const res2 = await fetch(`/api/workouts/${encodeURIComponent(workoutId)}/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify(payload)
+        });
+        if(res2.ok){ const data = await res2.json().catch(()=>null); return data || payload; }
+    }catch(e){ /* fall back to local */ }
+
+    // final fallback: store locally
+    try{
+        const key = 'hc:completedSessions';
+        const raw = localStorage.getItem(key); const arr = raw ? JSON.parse(raw) : [];
+        const item = Object.assign({ id: `local-session-${Date.now()}`, created: Date.now(), _local: true }, payload);
+        arr.push(item); localStorage.setItem(key, JSON.stringify(arr));
+        return item;
+    }catch(e){ throw new Error('Failed to save completed session'); }
+}
+
+window.completeWorkout = completeWorkout;

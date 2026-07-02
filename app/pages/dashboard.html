@@ -64,6 +64,21 @@
             </div>
         </main>
 
+                <!-- Workout detail modal (popout) -->
+                <div id="workoutModal" class="modal-overlay" aria-hidden="true">
+                    <div class="modal-panel" role="dialog" aria-modal="true" aria-label="Workout details">
+                        <button id="modalClose" class="btn small" style="position:absolute;right:12px;top:12px">Close</button>
+                        <h2 id="modalTitle">Workout</h2>
+                        <div id="modalMeta" class="small muted" style="margin-bottom:6px"></div>
+                        <div id="modalNotes" style="margin-bottom:10px;color:#444"></div>
+                        <div id="modalDetails"></div>
+                        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px">
+                            <button id="modalStart" class="btn primary">Start Workout</button>
+                            <button id="modalEdit" class="btn">Edit</button>
+                        </div>
+                    </div>
+                </div>
+
         <script src="../main.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', async function () {
@@ -228,10 +243,12 @@
                             }
                         });
                         actions.appendChild(del);
+                        // clicking the card opens the workout detail page
                         card.appendChild(actions);
-
-                        // prevent card clicks from bubbling to potential global handlers
-                        card.addEventListener('click', function(ev){ console.log('Card clicked id=', w.id, 'target=', ev.target); ev.stopPropagation(); });
+                        card.addEventListener('click', function(ev){
+                            ev.preventDefault(); ev.stopPropagation();
+                            openWorkoutModal(w, card);
+                        });
 
                         frag.appendChild(card);
                     }
@@ -315,6 +332,38 @@
                     sb.classList.remove('hide');
                     setTimeout(() => { if (sb) sb.classList.add('hide'); }, 6000);
                 }
+
+                // Modal helpers
+                function openWorkoutModal(w, anchorEl){
+                    try { document.body.classList.add('modal-open'); } catch(e){}
+                    const modal = document.getElementById('workoutModal');
+                    if(!modal) return;
+                    document.getElementById('modalTitle').textContent = w.title || w.name || 'Workout';
+                    document.getElementById('modalMeta').textContent = (w.date? w.date + ' • ' : '') + (formatDuration(w.duration) || '');
+                    document.getElementById('modalNotes').textContent = w.notes || '';
+                    const details = document.getElementById('modalDetails'); details.innerHTML = '';
+                    const dd = w.data ? (typeof w.data==='string'? JSON.parse(w.data) : w.data) : (w.exercises? { exercises: w.exercises, sets: w.sets } : {});
+                    if(dd.sets) { const e=document.createElement('div'); e.className='small muted'; e.textContent = dd.sets + ' sets'; details.appendChild(e); }
+                    if(dd.distance) { const e=document.createElement('div'); e.className='small muted'; e.textContent = 'Distance: '+dd.distance+' km'; details.appendChild(e); }
+                    if(Array.isArray(dd.exercises)){
+                        const ul = document.createElement('ul'); ul.style.marginTop='8px'; dd.exercises.forEach(ex=>{ const li=document.createElement('li'); li.textContent = ex.name + (ex.reps? ' • '+ex.reps+' reps':'') + (ex.weight? ' • '+ex.weight+(dd.weightUnit||''):''); ul.appendChild(li); }); details.appendChild(ul);
+                    }
+                    // animate modal from the clicked card's center
+                    modal.setAttribute('aria-hidden','false');
+                    const panel = modal.querySelector('.modal-panel');
+                    try {
+                        const r = anchorEl.getBoundingClientRect();
+                        const originX = ((r.left + r.width/2) / window.innerWidth) * 100;
+                        const originY = ((r.top + r.height/2) / window.innerHeight) * 100;
+                        panel.style.transformOrigin = `${originX}% ${originY}%`;
+                    } catch (e) { panel.style.transformOrigin = 'center center'; }
+                    modal.classList.add('open');
+                    // wire start/edit
+                    document.getElementById('modalStart').onclick = function(){ try{ sessionStorage.setItem('hc:currentWorkout', JSON.stringify(w)); }catch(e){} window.location.href = 'workout_session.html'; };
+                    document.getElementById('modalEdit').onclick = function(){ try{ sessionStorage.setItem('hc:selectedWorkout', JSON.stringify(w)); }catch(e){} window.location.href='addworkout.html'; };
+                    document.getElementById('modalClose').onclick = closeWorkoutModal;
+                }
+                function closeWorkoutModal(){ const modal=document.getElementById('workoutModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try { document.body.classList.remove('modal-open'); } catch(e){} }
             });
 
             function escapeHtml(s) {
