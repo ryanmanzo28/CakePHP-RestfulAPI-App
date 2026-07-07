@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Past Workouts — HydraCor</title>
+    <link rel="stylesheet" href="../assets/main.css?v=4">
+  </head>
+  <body class="dashboard-page">
+    <header class="dashboard-header">
+      <div class="dashboard-header-inner">
+        <div class="brand"><div class="logo" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="6" /><path d="M7 12h10M7 16h6" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h1 class="dashboard-title">HydraCor</h1><div class="tag">Past Workouts</div></div></div>
+        <div class="dashboard-actions">
+          <div class="user-info small">Signed in as <strong id="username"></strong></div>
+          <button id="backDash" class="btn secondary">Dashboard</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-content">
+      <div class="dashboard-container dashboard-shell">
+        <section class="dash-main-card">
+          <header class="dash-section-head row-between">
+            <h3>Activity Feed</h3>
+            <div class="feed-head-actions">
+              <select id="feedScope" class="cw-input" style="max-width:170px;min-width:130px;">
+                <option value="all">All Activity</option>
+                <option value="mine">My Posts</option>
+                <option value="community">Community</option>
+              </select>
+              <span class="small muted" id="postCount">0 items</span>
+            </div>
+          </header>
+          <p class="small muted feed-subtitle">See your completed posts and the wider community timeline.</p>
+          <div id="postList" class="workout-list activity-feed-list"></div>
+        </section>
+      </div>
+    </main>
+
+    <script src="../main.js"></script>
+    <script>
+    (function(){
+      const token = localStorage.getItem('jwt') || '';
+      if(!token){ window.location.href = 'login.html'; return; }
+
+      const FEED_CACHE_TTL_MS = 60000;
+      let communityFeedCache = [];
+      let communityFeedFetchedAt = 0;
+      const dtf = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+
+      const usernameEl = document.getElementById('username');
+      const backDashBtn = document.getElementById('backDash');
+      const listEl = document.getElementById('postList');
+      const countEl = document.getElementById('postCount');
+      const feedScopeEl = document.getElementById('feedScope');
+
+      if (usernameEl) usernameEl.textContent = localStorage.getItem('username') || '';
+      if (backDashBtn) backDashBtn.addEventListener('click', function(){ window.location.href='dashboard.html'; });
+
+      async function loadCommunityFeed(forceRefresh){
+        const useCache = !forceRefresh && communityFeedFetchedAt && (Date.now() - communityFeedFetchedAt < FEED_CACHE_TTL_MS);
+        if (useCache) return communityFeedCache;
+        const jwt = localStorage.getItem('jwt') || '';
+        if(!jwt) return [];
+        try {
+          const res = await fetch('/api/workouts/feed', {
+            headers: {
+              'Authorization': `Bearer ${jwt}`,
+              'Accept': 'application/json'
+            }
+          });
+          if(!res.ok) return [];
+          const json = await res.json().catch(() => []);
+          const next = Array.isArray(json) ? json : [];
+          communityFeedCache = next;
+          communityFeedFetchedAt = Date.now();
+          return next;
+        } catch (e) {
+          return communityFeedCache;
+        }
+      }
+
+      function parseWorkoutData(raw){
+        if(!raw) return {};
+        if(typeof raw === 'string'){
+          try { return JSON.parse(raw); } catch (e) { return {}; }
+        }
+        return raw;
+      }
+
+      function normalizeLocalPosts(posts){
+        return posts.map(p => ({
+          id: p.id,
+          kind: 'mine',
+          createdAt: p.created || Date.now(),
+          title: p.title || 'Completed Workout',
+          owner: 'You',
+          workoutTitle: p.workoutTitle || '',
+          summary: p.summary || {},
+          activityType: p.activityType || '',
+          intensity: p.intensity || '',
+          notes: p.notes || '',
+          photoDataUrl: p.photoDataUrl || '',
+          source: p
+        }));
+      }
+
+      function normalizeCommunityFeed(items){
+        return items.map(it => {
+          const data = parseWorkoutData(it.data);
+          const created = it.created ? Date.parse(it.created) : 0;
+          return {
+            id: `community-${it.id}`,
+            kind: 'community',
+            createdAt: created || Date.now(),
+            title: it.title || 'Workout',
+            owner: it.owner || 'Member',
+            workoutTitle: it.title || '',
+            summary: {
+              durationSeconds: 0,
+              setsCompleted: data && data.sets ? Number(data.sets) : null,
+              exercisesCompleted: Array.isArray(data.exercises) ? data.exercises.length : null
+            },
+            activityType: data && data.type ? data.type : '',
+            intensity: '',
+            notes: it.notes || '',
+            photoDataUrl: '',
+            source: it
+          };
+        });
+      }
+
+      async function renderPosts(opts){
+        const options = opts || {};
+        const scope = (feedScopeEl || {}).value || 'all';
+        const myPosts = (window.getCompletedPosts ? window.getCompletedPosts() : []).slice().sort((a,b)=>(b.created||0)-(a.created||0));
+        const needCommunity = scope !== 'mine';
+        const community = needCommunity ? await loadCommunityFeed(!!options.forceRefresh) : [];
+        const normalizedMine = normalizeLocalPosts(myPosts);
+        const normalizedCommunity = normalizeCommunityFeed(community);
+
+        let merged = normalizedMine.concat(normalizedCommunity);
+        if(scope === 'mine') merged = normalizedMine;
+        if(scope === 'community') merged = normalizedCommunity;
+        merged.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+
+        if (countEl) countEl.textContent = `${merged.length} item${merged.length===1?'':'s'}`;
+        const frag = document.createDocumentFragment();
+
+        if(!merged.length){
+          const empty = document.createElement('div');
+          empty.className = 'workout-card feed-card empty';
+          empty.textContent = 'No feed activity yet.';
+          frag.appendChild(empty);
+          if (listEl) listEl.replaceChildren(frag);
+          return;
+        }
+
+        merged.forEach(p => {
+          const card = document.createElement('div');
+          card.className = `workout-card feed-card ${p.kind === 'mine' ? 'is-mine' : 'is-community'}`;
+
+          const top = document.createElement('div');
+          top.className = 'feed-card-top';
+
+          const avatar = document.createElement('div');
+          avatar.className = 'feed-avatar';
+          avatar.textContent = (p.owner || 'M').slice(0, 1).toUpperCase();
+          top.appendChild(avatar);
+
+          const heading = document.createElement('div');
+          heading.className = 'feed-heading';
+
+          const ownerRow = document.createElement('div');
+          ownerRow.className = 'feed-owner-row';
+          const owner = document.createElement('span');
+          owner.className = 'feed-owner';
+          owner.textContent = p.kind === 'mine' ? 'You' : (p.owner || 'Member');
+          ownerRow.appendChild(owner);
+
+          const sourceBadge = document.createElement('span');
+          sourceBadge.className = `feed-source ${p.kind === 'mine' ? 'mine' : 'community'}`;
+          sourceBadge.textContent = p.kind === 'mine' ? 'My Post' : 'Community';
+          ownerRow.appendChild(sourceBadge);
+          heading.appendChild(ownerRow);
+
+          const when = document.createElement('div');
+          when.className = 'small muted';
+          when.textContent = dtf.format(new Date(p.createdAt || Date.now()));
+          heading.appendChild(when);
+          top.appendChild(heading);
+          card.appendChild(top);
+
+          const h = document.createElement('h3');
+          h.textContent = p.title || 'Workout';
+          card.appendChild(h);
+
+          const meta = document.createElement('div');
+          meta.className = 'feed-meta';
+          const s = p.summary || {};
+          const parts = [];
+          if(p.workoutTitle) parts.push(`Workout: ${p.workoutTitle}`);
+          if(p.activityType) parts.push(`Type: ${p.activityType}`);
+          if(p.intensity) parts.push(`Effort: ${p.intensity}`);
+          if(s.setsCompleted) parts.push(`${s.setsCompleted} sets`);
+          if(s.exercisesCompleted) parts.push(`${s.exercisesCompleted} exercises`);
+          if(s.durationSeconds) parts.push(`${Math.max(1, Math.round(s.durationSeconds/60))} min`);
+          else if(p.source && p.source.duration) parts.push(`${p.source.duration}`);
+          parts.forEach(part => {
+            const chip = document.createElement('span');
+            chip.className = 'feed-chip';
+            chip.textContent = part;
+            meta.appendChild(chip);
+          });
+          card.appendChild(meta);
+
+          if(p.notes){
+            const notes = document.createElement('p');
+            notes.className = 'small feed-notes';
+            notes.textContent = p.notes;
+            card.appendChild(notes);
+          }
+
+          if(p.photoDataUrl){
+            const imgWrap = document.createElement('div');
+            imgWrap.className = 'completion-photo-wrap';
+            const img = document.createElement('img');
+            img.className = 'completion-photo';
+            img.alt = p.title ? `${p.title} photo` : 'Completed workout photo';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.src = p.photoDataUrl;
+            imgWrap.appendChild(img);
+            card.appendChild(imgWrap);
+          }
+
+          if(p.kind === 'mine'){
+            const actions = document.createElement('div');
+            actions.className = 'card-actions';
+
+            const rename = document.createElement('button');
+            rename.className = 'btn small';
+            rename.textContent = 'Rename';
+            rename.addEventListener('click', function(ev){
+              ev.preventDefault(); ev.stopPropagation();
+              const next = prompt('Rename this workout post:', p.title || 'Completed Workout');
+              const cleaned = String(next || '').trim();
+              if(!cleaned) return;
+              if(window.renameCompletedPost){ window.renameCompletedPost(p.source.id, cleaned); }
+              renderPosts({ forceRefresh: false });
+            });
+            actions.appendChild(rename);
+
+            const del = document.createElement('button');
+            del.className = 'btn danger small';
+            del.textContent = 'Delete';
+            del.addEventListener('click', function(ev){
+              ev.preventDefault(); ev.stopPropagation();
+              if(!confirm('Delete this post?')) return;
+              if(window.deleteCompletedPost){ window.deleteCompletedPost(p.source.id); }
+              renderPosts({ forceRefresh: false });
+            });
+            actions.appendChild(del);
+
+            card.appendChild(actions);
+          }
+
+          frag.appendChild(card);
+        });
+
+        if (listEl) listEl.replaceChildren(frag);
+      }
+
+      if(feedScopeEl){ feedScopeEl.addEventListener('change', function(){ renderPosts({ forceRefresh: false }); }); }
+
+      renderPosts({ forceRefresh: true });
+    })();
+    </script>
+  </body>
+  </html>

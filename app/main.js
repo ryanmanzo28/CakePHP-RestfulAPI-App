@@ -43,7 +43,25 @@ async function hashPassword(plainText) {
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
 }
-async function loadWorkouts() {
+const WORKOUTS_CACHE_TTL_MS = 30000;
+let workoutsCacheData = null;
+let workoutsCacheAt = 0;
+
+function invalidateWorkoutsCache() {
+    workoutsCacheData = null;
+    workoutsCacheAt = 0;
+}
+
+async function loadWorkouts(options = {}) {
+   const forceRefresh = !!(options && options.forceRefresh);
+   const hasFreshCache = !forceRefresh
+       && Array.isArray(workoutsCacheData)
+       && workoutsCacheAt
+       && (Date.now() - workoutsCacheAt < WORKOUTS_CACHE_TTL_MS);
+   if (hasFreshCache) {
+       return workoutsCacheData.slice();
+   }
+
    const token = localStorage.getItem('jwt') || '';
    if (!token) {
        throw new Error('Not authenticated');
@@ -76,10 +94,15 @@ async function loadWorkouts() {
         } catch (e) { /* ignore parse errors */ }
         return w;
     });
+    workoutsCacheData = workouts;
+    workoutsCacheAt = Date.now();
     console.log("Workouts loaded successfully:", workouts);
-    return workouts;
+    return workouts.slice();
    } catch (error) {
     console.error("Failed to load workouts:", error);
+    if (Array.isArray(workoutsCacheData) && workoutsCacheData.length) {
+        return workoutsCacheData.slice();
+    }
     return [];
    }
 }
@@ -215,15 +238,19 @@ async function addWorkout({ title, date, duration, notes, type, sets, exercises,
         }
 
         const created = await res.json().catch(() => null);
+        invalidateWorkoutsCache();
         return created || { id: Date.now(), title, date, duration, notes };
     } catch (err) {
         // Fallback: return a client-side object so UI can update optimistically
+        invalidateWorkoutsCache();
         return { id: `local-${Date.now()}`, title, date, duration, notes, _local: true };
     }
 }
 
 // Expose for pages to call directly
 window.addWorkout = addWorkout;
+window.loadWorkouts = loadWorkouts;
+window.invalidateWorkoutsCache = invalidateWorkoutsCache;
 
 /**
  * Update an existing workout by id. Returns the updated workout object on success.
@@ -269,6 +296,7 @@ async function updateWorkout(id, { title, date, duration, notes, type, sets, exe
             throw new Error(msg);
         }
         const updated = await res.json().catch(()=>null);
+        invalidateWorkoutsCache();
         return updated || Object.assign({ id }, body);
     }catch(err){
         // On failure, throw so caller can surface error and decide optimistic behavior
@@ -300,6 +328,7 @@ async function deleteWorkout(id) {
         err.status = res.status;
         throw err;
     }
+    invalidateWorkoutsCache();
     return true;
 }
 
@@ -356,3 +385,91 @@ async function completeWorkout(workoutId, summary = {}){
 }
 
 window.completeWorkout = completeWorkout;
+
+function getCompletedPosts() {
+    try {
+        const raw = localStorage.getItem('hc:completedPosts');
+        const arr = raw ? JSON.parse(raw) : [];
+        return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+        return [];
+    }
+}
+
+function saveCompletedPosts(posts) {
+    try {
+        localStorage.setItem('hc:completedPosts', JSON.stringify(posts || []));
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+function createCompletedPost({ title, workoutTitle, workoutId, summary } = {}) {
+    const now = Date.now();
+    const post = {
+        id: `post-${now}`,
+        title: title || workoutTitle || 'Completed Workout',
+        workoutTitle: workoutTitle || 'Workout',
+        workoutId: workoutId || null,
+        created: now,
+        summary: summary || {},
+    };
+    const posts = getCompletedPosts();
+    posts.unshift(post);
+    saveCompletedPosts(posts);
+    return post;
+}
+
+function getCompletedPostById(id) {
+    if (!id) return null;
+    const posts = getCompletedPosts();
+    return posts.find((p) => p && p.id === id) || null;
+}
+
+function updateCompletedPost(id, updates = {}) {
+    if (!id) return null;
+    const posts = getCompletedPosts();
+    const idx = posts.findIndex((p) => p && p.id === id);
+    if (idx === -1) return null;
+
+    const next = Object.assign({}, posts[idx]);
+    const cleanedTitle = (updates.title !== undefined) ? String(updates.title || '').trim() : next.title;
+    if (cleanedTitle) next.title = cleanedTitle;
+    if (updates.activityType !== undefined) next.activityType = String(updates.activityType || '').trim();
+    if (updates.intensity !== undefined) next.intensity = String(updates.intensity || '').trim();
+    if (updates.notes !== undefined) next.notes = String(updates.notes || '').trim();
+    if (updates.photoDataUrl !== undefined) next.photoDataUrl = updates.photoDataUrl || '';
+    if (updates.photoName !== undefined) next.photoName = String(updates.photoName || '').trim();
+    next.updated = Date.now();
+
+    posts[idx] = next;
+    if (!saveCompletedPosts(posts)) return null;
+    return next;
+}
+
+function renameCompletedPost(id, newTitle) {
+    if (!id) return false;
+    const posts = getCompletedPosts();
+    const idx = posts.findIndex((p) => p && p.id === id);
+    if (idx === -1) return false;
+    const cleaned = String(newTitle || '').trim();
+    if (!cleaned) return false;
+    posts[idx].title = cleaned;
+    return saveCompletedPosts(posts);
+}
+
+function deleteCompletedPost(id) {
+    if (!id) return false;
+    const posts = getCompletedPosts();
+    const next = posts.filter((p) => p && p.id !== id);
+    if (next.length === posts.length) return false;
+    return saveCompletedPosts(next);
+}
+
+window.getCompletedPosts = getCompletedPosts;
+window.getCompletedPostById = getCompletedPostById;
+window.createCompletedPost = createCompletedPost;
+window.updateCompletedPost = updateCompletedPost;
+window.renameCompletedPost = renameCompletedPost;
+window.deleteCompletedPost = deleteCompletedPost;

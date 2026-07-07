@@ -152,6 +152,29 @@
       const restOverlay = document.getElementById('restOverlay');
       const restCountEl = document.getElementById('restCount');
 
+      function suggestPostTitle() {
+        const base = (workout && (workout.title || workout.name)) ? (workout.title || workout.name) : 'Workout';
+        const d = new Date();
+        const date = d.toLocaleDateString();
+        return `${base} • ${date}`;
+      }
+
+      async function createCompletionPost(summary) {
+        try {
+          const postTitle = suggestPostTitle();
+          if (window.createCompletedPost) {
+            return window.createCompletedPost({
+              title: postTitle,
+              workoutTitle: workout.title || workout.name || 'Workout',
+              workoutId: workout.id || null,
+              summary,
+            });
+          }
+          return null;
+        } catch (e) { console.warn('Failed to create completion post', e); }
+        return null;
+      }
+
       function saveSession(){ try { sessionStorage.setItem(sessionKey, JSON.stringify(sessionState)); } catch(e){} }
 
       function pad(n){ return n<10? '0'+n : ''+n; }
@@ -178,9 +201,15 @@
                 // attempt to record completion via API (falls back internally)
                 await window.completeWorkout(workout.id || workout.title, summary);
               }catch(e){ console.warn('Failed to persist completed session', e); }
+              const post = await createCompletionPost(summary);
               sessionStorage.removeItem(sessionKey);
-              alert('Workout complete!');
-              window.location.href = 'dashboard.html';
+              if (post && post.id) {
+                sessionStorage.setItem('hc:pendingCompletedPostId', post.id);
+                window.location.href = 'complete_workout_post.html';
+              } else {
+                alert('Workout complete!');
+                window.location.href = 'dashboard.html';
+              }
               return;
             }
         }
@@ -285,8 +314,14 @@
         stopTicker();
         const summary = { durationSeconds: elapsedSeconds(), setsCompleted: sessionState.curSet, exercisesCompleted: ((sessionState.curSet-1) * exercises.length) + sessionState.curIdx, completedAt: Date.now() };
         try{ await window.completeWorkout(workout.id || workout.title, summary); }catch(e){ console.warn('Could not persist finished session', e); }
+        const post = await createCompletionPost(summary);
         sessionStorage.removeItem(sessionKey);
-        window.location.href='dashboard.html';
+        if (post && post.id) {
+          sessionStorage.setItem('hc:pendingCompletedPostId', post.id);
+          window.location.href='complete_workout_post.html';
+        } else {
+          window.location.href='dashboard.html';
+        }
       });
 
       document.getElementById('endSession').addEventListener('click', function(){ if(confirm('End session and return to dashboard?')){ stopTicker(); window.location.href='dashboard.html'; } });

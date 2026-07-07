@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Complete Workout Post — HydraCor</title>
+    <link rel="stylesheet" href="../assets/main.css?v=4">
+  </head>
+  <body class="cw-add-workout completion-post-page">
+    <header class="dashboard-header">
+      <div class="dashboard-header-inner">
+        <div class="brand"><div class="logo" aria-hidden="true"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="2" width="20" height="20" rx="6" /><path d="M7 12h10M7 16h6" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><h1 class="dashboard-title">HydraCor</h1><div class="tag">Post Workout</div></div></div>
+        <div class="dashboard-actions">
+          <div class="user-info small">Signed in as <strong id="username"></strong></div>
+          <button id="skipBtn" class="btn secondary">Skip</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="cw-container">
+      <div class="cw-card">
+        <div class="cw-right">
+          <form id="postForm" class="cw-form" novalidate>
+            <div class="cw-header">
+              <div class="cw-title-block">
+                <label for="postTitle" class="cw-label">Post Title</label>
+                <input id="postTitle" class="cw-input" placeholder="Name this completed workout" required>
+              </div>
+            </div>
+
+            <div class="cw-grid">
+              <div class="field">
+                <label class="cw-label" for="activityType">Activity Type</label>
+                <select id="activityType" class="cw-input">
+                  <option value="">Choose one</option>
+                  <option>Strength</option>
+                  <option>Cardio</option>
+                  <option>Running</option>
+                  <option>Mobility</option>
+                  <option>Sports</option>
+                  <option>Recovery</option>
+                  <option>Other</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="cw-label" for="intensity">How hard was it?</label>
+                <select id="intensity" class="cw-input">
+                  <option value="">Choose effort</option>
+                  <option value="Easy">Easy</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Hard">Hard</option>
+                  <option value="Very Hard">Very Hard</option>
+                </select>
+              </div>
+              <div class="field" style="grid-column:1 / -1">
+                <label class="cw-label" for="postNotes">Notes</label>
+                <textarea id="postNotes" class="cw-input" rows="4" placeholder="How did it feel? Any wins or struggles?"></textarea>
+              </div>
+              <div class="field" style="grid-column:1 / -1">
+                <label class="cw-label" for="postPhoto">Photo</label>
+                <input id="postPhoto" class="cw-input" type="file" accept="image/*">
+                <div class="small muted">Image is saved locally in your browser storage.</div>
+                <div id="photoPreviewWrap" class="completion-photo-wrap" style="display:none; margin-top:10px;">
+                  <img id="photoPreview" alt="Workout post photo preview" class="completion-photo">
+                </div>
+              </div>
+            </div>
+
+            <div class="cw-actions">
+              <div id="formError" class="error"></div>
+              <button class="btn primary" type="submit">Save Post</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <script src="../main.js"></script>
+    <script>
+      (function(){
+        const token = localStorage.getItem('jwt') || '';
+        if(!token){ window.location.href = 'login.html'; return; }
+
+        document.getElementById('username').textContent = localStorage.getItem('username') || '';
+
+        const params = new URLSearchParams(window.location.search);
+        const queryId = params.get('postId');
+        const pendingId = sessionStorage.getItem('hc:pendingCompletedPostId');
+        const postId = queryId || pendingId;
+
+        if(!postId || !window.getCompletedPostById){
+          window.location.href = 'past_workouts.html';
+          return;
+        }
+
+        let post = window.getCompletedPostById(postId);
+        if(!post){
+          window.location.href = 'past_workouts.html';
+          return;
+        }
+
+        const postTitle = document.getElementById('postTitle');
+        const activityType = document.getElementById('activityType');
+        const intensity = document.getElementById('intensity');
+        const postNotes = document.getElementById('postNotes');
+        const postPhoto = document.getElementById('postPhoto');
+        const formError = document.getElementById('formError');
+        const photoPreviewWrap = document.getElementById('photoPreviewWrap');
+        const photoPreview = document.getElementById('photoPreview');
+
+        function renderPhoto(dataUrl){
+          if(dataUrl){
+            photoPreview.src = dataUrl;
+            photoPreviewWrap.style.display = '';
+          } else {
+            photoPreview.src = '';
+            photoPreviewWrap.style.display = 'none';
+          }
+        }
+
+        postTitle.value = post.title || '';
+        activityType.value = post.activityType || '';
+        intensity.value = post.intensity || '';
+        postNotes.value = post.notes || '';
+        renderPhoto(post.photoDataUrl || '');
+
+        document.getElementById('skipBtn').addEventListener('click', function(){
+          sessionStorage.removeItem('hc:pendingCompletedPostId');
+          window.location.href = 'past_workouts.html';
+        });
+
+        postPhoto.addEventListener('change', function(){
+          const f = postPhoto.files && postPhoto.files[0];
+          if(!f) return;
+          if(!f.type || !f.type.startsWith('image/')){
+            formError.textContent = 'Please pick an image file.';
+            postPhoto.value = '';
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = function(){
+            const dataUrl = String(reader.result || '');
+            if(!dataUrl){
+              formError.textContent = 'Could not read image.';
+              return;
+            }
+            const updated = window.updateCompletedPost(postId, { photoDataUrl: dataUrl, photoName: f.name });
+            if(!updated){
+              formError.textContent = 'Could not save photo. Try a smaller image.';
+              return;
+            }
+            formError.textContent = '';
+            post = updated;
+            renderPhoto(post.photoDataUrl || '');
+          };
+          reader.readAsDataURL(f);
+        });
+
+        document.getElementById('postForm').addEventListener('submit', function(ev){
+          ev.preventDefault();
+          const title = String(postTitle.value || '').trim();
+          if(!title){
+            formError.textContent = 'Please add a post title.';
+            postTitle.focus();
+            return;
+          }
+
+          const updated = window.updateCompletedPost(postId, {
+            title,
+            activityType: activityType.value,
+            intensity: intensity.value,
+            notes: postNotes.value
+          });
+
+          if(!updated){
+            formError.textContent = 'Could not save post details.';
+            return;
+          }
+
+          sessionStorage.removeItem('hc:pendingCompletedPostId');
+          window.location.href = 'past_workouts.html';
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -19,7 +19,7 @@
                     </div>
                     <div>
                         <h1 class="dashboard-title">HydraCor</h1>
-                        <div class="tag">Command Center</div>
+                        <div class="tag">Dashboard</div>
                     </div>
                 </div>
 
@@ -33,51 +33,60 @@
 
         <main class="dashboard-content">
             <div class="dashboard-container dashboard-shell">
-                <section class="dash-hero-card">
-                    <header class="dash-hero-head">
-                        <p class="dash-eyebrow">Dashboard</p>
-                        <h2>Training Overview</h2>
-                        <p class="dash-subtitle">Everything you need to review past sessions and start your next workout fast.</p>
-                    </header>
-                    <div class="dash-stats-grid">
-                        <div class="dash-stat-card">
-                            <div class="stat-value" id="statTotal">0</div>
-                            <div class="stat-label">Total</div>
-                        </div>
-                        <div class="dash-stat-card">
-                            <div class="stat-value" id="statRecent">0</div>
-                            <div class="stat-label">Last 7d</div>
-                        </div>
-                        <div class="dash-stat-card">
-                            <div class="stat-value" id="statAvg">—</div>
-                            <div class="stat-label">Avg Duration</div>
-                        </div>
-                    </div>
-                </section>
-
-                <section class="dash-toolbar-card">
-                    <div class="small muted" id="workoutCount">0 workouts</div>
-                    <div class="dash-toolbar-actions">
-                        <input id="workoutSearch" class="search" placeholder="Search workouts" />
-                    </div>
-                </section>
-
-                <div id="error" role="alert" class="error"></div>
-
                 <section class="dash-layout">
-                    <div class="dash-main-card">
-                        <header class="dash-section-head row-between">
-                            <h3>Your Workouts</h3>
-                            <span class="small muted">Click any card to view details</span>
-                        </header>
-                        <div class="dashboard-grid">
-                            <div id="workoutList" class="workout-list"></div>
+                    <div class="dash-main-stack">
+                        <section class="dash-hero-card">
+                            <header class="dash-hero-head">
+                                <p class="dash-eyebrow">Dashboard</p>
+                                <h2>Training Overview</h2>
+                                <p class="dash-subtitle">Everything you need to review past sessions and start your next workout fast.</p>
+                            </header>
+                        </section>
+
+                        <section class="dash-toolbar-card">
+                            <div class="small muted" id="workoutCount">0 workouts</div>
+                            <div class="dash-toolbar-actions">
+                                <input id="workoutSearch" class="search" placeholder="Search workouts" />
+                            </div>
+                        </section>
+
+                        <div id="error" role="alert" class="error"></div>
+
+                        <div class="dash-main-card">
+                            <header class="dash-section-head row-between">
+                                <h3>Your Workouts</h3>
+                                <span class="small muted">Click any card to view details</span>
+                            </header>
+                            <div class="dashboard-grid">
+                                <div id="workoutList" class="workout-list"></div>
+                            </div>
                         </div>
                     </div>
 
                     <aside class="dash-side">
+                        <div class="dash-side-card dash-stats-panel">
+                            <h3 class="small">Quick Stats</h3>
+                            <div class="dash-stats-grid">
+                                <div class="dash-stat-card">
+                                    <div class="stat-value" id="statTotal">0</div>
+                                    <div class="stat-label">Total</div>
+                                </div>
+                                <div class="dash-stat-card">
+                                    <div class="stat-value" id="statRecent">0</div>
+                                    <div class="stat-label">Last 7d</div>
+                                </div>
+                                <div class="dash-stat-card">
+                                    <div class="stat-value" id="statAvg">—</div>
+                                    <div class="stat-label">Avg Duration</div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="dash-side-card">
-                            <h3 class="small">Recent Sessions</h3>
+                            <div class="row-between" style="margin-bottom:8px;align-items:center;">
+                                <h3 class="small" style="margin:0;border:0;padding:0;">Recent Sessions</h3>
+                                <button id="viewAllPast" class="btn small">View All</button>
+                            </div>
                             <div id="pastWorkouts" class="past-list"></div>
                         </div>
                     </aside>
@@ -142,6 +151,7 @@
                 const settingsBtn = document.getElementById('settingsBtn'); if(settingsBtn) settingsBtn.addEventListener('click', function(){ openSettings(); });
                 const settingsClose = document.getElementById('settingsClose'); if(settingsClose) settingsClose.addEventListener('click', function(){ closeSettings(); });
                 const settingsSave = document.getElementById('settingsSave'); if(settingsSave) settingsSave.addEventListener('click', function(){ saveSettings(); });
+                const viewAllPast = document.getElementById('viewAllPast'); if(viewAllPast) viewAllPast.addEventListener('click', function(){ window.location.href = 'past_workouts.html'; });
 
                 // Ensure add button always navigates to add page, even if later code errors
                 const earlyAddBtn = document.getElementById('addWorkout');
@@ -443,23 +453,41 @@
 
                 function renderPastWorkouts(workouts){
                     const el = document.getElementById('pastWorkouts'); if(!el) return;
-                    // sort by date desc (most recent first); fallback to created
-                    const sorted = workouts.slice().sort((a,b)=>{ const ta=Date.parse(a.date||a.created||0)||0; const tb=Date.parse(b.date||b.created||0)||0; return tb-ta; });
+                    const posts = (window.getCompletedPosts ? window.getCompletedPosts() : []).slice().sort((a,b)=>(b.created||0)-(a.created||0));
                     el.innerHTML='';
-                    const max = 8;
+
+                    if(posts.length){
+                        posts.slice(0, 8).forEach(p => {
+                            const card = document.createElement('div'); card.className='past-card';
+                            const when = document.createElement('div'); when.className='small muted'; when.textContent = new Date(p.created || Date.now()).toLocaleDateString();
+                            const title = document.createElement('div'); title.className='past-title'; title.textContent = p.title || p.workoutTitle || 'Completed Workout';
+                            const meta = document.createElement('div'); meta.className='small muted';
+                            const s = p.summary || {};
+                            const parts = [];
+                            if(s.setsCompleted) parts.push(`${s.setsCompleted} sets`);
+                            if(s.exercisesCompleted) parts.push(`${s.exercisesCompleted} done`);
+                            if(s.durationSeconds) parts.push(`${Math.max(1, Math.round(s.durationSeconds/60))}m`);
+                            if(p.workoutTitle) parts.push(`from ${p.workoutTitle}`);
+                            meta.textContent = parts.join(' • ');
+                            card.appendChild(when); card.appendChild(title); card.appendChild(meta);
+                            el.appendChild(card);
+                        });
+                        return;
+                    }
+
+                    // fallback to workout-based rendering if no completed posts yet
+                    const sorted = workouts.slice().sort((a,b)=>{ const ta=Date.parse(a.date||a.created||0)||0; const tb=Date.parse(b.date||b.created||0)||0; return tb-ta; });
                     let count = 0;
-                    for(const w of sorted){ if(count++>=max) break; const card = document.createElement('div'); card.className='past-card'; const when = document.createElement('div'); when.className='small muted'; when.textContent = w.date || (w.created? new Date(w.created).toLocaleDateString() : ''); card.appendChild(when);
+                    for(const w of sorted){ if(count++>=8) break; const card = document.createElement('div'); card.className='past-card'; const when = document.createElement('div'); when.className='small muted'; when.textContent = w.date || (w.created? new Date(w.created).toLocaleDateString() : ''); card.appendChild(when);
                         const title = document.createElement('div'); title.className='past-title'; title.textContent = w.title || w.name || 'Workout'; card.appendChild(title);
                         const dd = w.data ? (typeof w.data==='string'? JSON.parse(w.data): w.data) : (w.exercises? { exercises: w.exercises, sets: w.sets } : {});
                         const meta = document.createElement('div'); meta.className='small muted'; const parts = [];
                         if(dd && dd.sets) parts.push(`${dd.sets} sets`);
                         if(Array.isArray(dd.exercises) && dd.exercises.length) parts.push(`${dd.exercises.length} exercises`);
                         const total = computeTotalWeightFor(w);
-                        // prefer user setting for unit, then workout data unit, fallback to 'lb'
                         const userUnit = localStorage.getItem('hc:weightUnit');
                         const unit = userUnit || (dd && dd.weightUnit) || 'lb';
                         if(total){
-                            // convert if source unit differs from preferred (assume source lb if unspecified)
                             const sourceUnit = (dd && dd.weightUnit) || 'lb';
                             let displayTotal = total;
                             if(sourceUnit !== unit){
@@ -467,7 +495,6 @@
                                 if(sourceUnit === 'lb' && unit === 'kg') displayTotal = total * LB_TO_KG;
                                 else if(sourceUnit === 'kg' && unit === 'lb') displayTotal = total / LB_TO_KG;
                             }
-                            // format: round to 1 decimal if fractional
                             const formatted = (Math.abs(displayTotal - Math.round(displayTotal)) > 0.05) ? displayTotal.toFixed(1) : String(Math.round(displayTotal));
                             parts.push(`Total ${formatted} ${unit}`);
                         }

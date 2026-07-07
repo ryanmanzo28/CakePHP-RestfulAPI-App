@@ -60,6 +60,70 @@ class WorkoutsController extends AppController
     }
 
     /**
+     * Community feed for workouts across users.
+     * URL: GET /api/workouts/feed
+     */
+    public function feed()
+    {
+        // Authentication middleware validates token and attaches jwt payload.
+        $jwt = $this->request->getAttribute('jwt');
+        $viewerId = (int)($jwt->sub ?? 0);
+
+        try {
+            $workoutsTable = $this->fetchTable('Workouts');
+            $results = $workoutsTable->find()
+                ->select([
+                    'Workouts.id',
+                    'Workouts.user_id',
+                    'Workouts.title',
+                    'Workouts.notes',
+                    'Workouts.date',
+                    'Workouts.duration',
+                    'Workouts.data',
+                    'Workouts.created',
+                    'Users__username' => 'Users.username',
+                    'Users__email' => 'Users.email',
+                ])
+                ->contain(['Users'])
+                ->order(['Workouts.created' => 'DESC'])
+                ->limit(100)
+                ->all()
+                ->toArray();
+
+            $feed = array_map(function ($w) use ($viewerId) {
+                $owner = isset($w->user) ? ($w->user->username ?: $w->user->email) : null;
+                if (!$owner) {
+                    $owner = isset($w->users__username) && $w->users__username ? (string)$w->users__username : (isset($w->users__email) ? (string)$w->users__email : ('User #' . (string)$w->user_id));
+                }
+                return [
+                    'id' => $w->id,
+                    'user_id' => $w->user_id,
+                    'owner' => $owner,
+                    'title' => $w->title,
+                    'notes' => $w->notes,
+                    'date' => $w->date,
+                    'duration' => $w->duration,
+                    'data' => $w->data,
+                    'created' => $w->created,
+                    'isMine' => $viewerId > 0 ? ((int)$w->user_id === $viewerId) : false,
+                ];
+            }, $results);
+
+            return $this->response->withType('application/json')
+                ->withStringBody(json_encode($feed));
+        } catch (\Throwable $e) {
+            try {
+                $data = $this->pdoQueryCommunityFeed($viewerId);
+                return $this->response->withType('application/json')
+                    ->withStringBody(json_encode($data));
+            } catch (\Throwable $_) {
+                return $this->response->withStatus(500)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Failed to load community feed']));
+            }
+        }
+    }
+
+    /**
      * Create a new workout for the authenticated user.
      * Expects JSON body: { title, date?, duration?, notes? }
      */
@@ -443,6 +507,39 @@ class WorkoutsController extends AppController
             $stmt = $pdo->prepare('SELECT * FROM workouts WHERE user_id = :uid');
             $stmt->execute(['uid' => $userId]);
             return $stmt->fetchAll();
+        } catch (\PDOException $e) {
+            return [];
+        }
+    }
+
+    protected function pdoQueryCommunityFeed(int $viewerId = 0): array
+    {
+        $host = (function_exists('env') ? env('DB_HOST') : getenv('DB_HOST')) ?: 'localhost';
+        $db = (function_exists('env') ? env('DB_NAME') : getenv('DB_NAME')) ?: 'cakephp';
+        $user = (function_exists('env') ? env('DB_USER') : getenv('DB_USER')) ?: 'root';
+        $pass = (function_exists('env') ? env('DB_PASS') : getenv('DB_PASS')) ?: '';
+        $charset = 'utf8mb4';
+        $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+
+        $options = [
+            \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+            \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+        ];
+
+        try {
+            $pdo = new \PDO($dsn, $user, $pass, $options);
+            $sql = "SELECT w.id, w.user_id, w.title, w.notes, w.date, w.duration, w.data, w.created,
+                           COALESCE(u.username, u.email, CONCAT('User #', w.user_id)) AS owner
+                    FROM workouts w
+                    LEFT JOIN users u ON u.id = w.user_id
+                    ORDER BY w.created DESC
+                    LIMIT 100";
+            $stmt = $pdo->query($sql);
+            $rows = $stmt->fetchAll();
+            return array_map(function ($row) use ($viewerId) {
+                $row['isMine'] = $viewerId > 0 ? ((int)($row['user_id'] ?? 0) === $viewerId) : false;
+                return $row;
+            }, $rows);
         } catch (\PDOException $e) {
             return [];
         }

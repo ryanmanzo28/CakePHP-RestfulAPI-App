@@ -8,7 +8,7 @@
     --accent:#4f46e5; /* primary brand color */
     --accent-2:#4338ca; /* subtle darker */
     --card:#ffffff;
-    --muted:#6b6b85;
+    --muted:#545773;
     --app-gradient: linear-gradient(135deg,#f2f3f7 0%,#c7c9ff 35%,#6b62ff 65%,#3220ff 100%);
     /* spacing scale */
     --space-xxs:4px;
@@ -124,7 +124,7 @@ body.auth-page {
 .login-form .field{ margin-top:12px }
 .login-form label{ display:block;font-size:0.85rem;color:var(--muted);margin-bottom:8px }
 .login-form input{ width:100%;padding:12px 14px;border-radius:10px;border:1px solid #e9e9f5;background:#fbfbff;font-size:1rem;transition:box-shadow .15s ease,border-color .15s ease }
-.login-form input::placeholder{ color:#bdbde6 }
+.login-form input::placeholder{ color:#9697ba }
 .login-form input:focus{ outline:none;box-shadow:0 6px 18px rgba(91,43,255,0.12);border-color:var(--accent) }
 
 .actions{ margin-top:var(--space-md);display:flex;justify-content:flex-end }
@@ -134,8 +134,11 @@ body.auth-page {
 .btn.primary:hover{ transform:translateY(-2px);box-shadow:0 12px 26px rgba(79,70,229,0.14) }
 .btn.primary:active{ transform:translateY(0);box-shadow:0 6px 14px rgba(79,70,229,0.10) }
 
+.btn.secondary{ background:#f7f7ff;border:1px solid #d9dbf2;color:#2e3158;padding:8px 12px;border-radius:10px }
+.btn.secondary:hover{ background:#eff1ff;border-color:#c8ccef }
+
 .btn.small { padding:6px 10px; font-size:0.9rem; border-radius:8px }
-.btn.danger { background: transparent; border: 1px solid rgba(255,90,90,0.14); color: #ff4d4d }
+.btn.danger { background: transparent; border: 1px solid rgba(194,54,54,0.26); color: #b53030 }
 .card-actions{ margin-top:10px; display:flex; justify-content:flex-end }
 
 .error{ color:#c33;margin-top:12px;font-size:0.95rem }
@@ -174,6 +177,7 @@ body.auth-page {
 
     /* Ensure title in card header is white and stands out */
     .login-card .card-title h1 { color: #fff !important; }
+    .login-card .card-title .tag { color: rgba(255, 255, 255, 0.92) !important; }
 
     /* On colored header make the logo rect white for contrast */
     .login-card .card-header .logo svg rect { fill: var(--accent) !important; }
@@ -280,7 +284,18 @@ button{ cursor:pointer }
 
 .dashboard-title{ margin:0;font-size:1.05rem;color:#fff }
 .dashboard-actions{ display:flex;gap:12px;align-items:center }
-.btn.secondary{ background:transparent;border:1px solid rgba(255,255,255,0.12);color:#fff;padding:8px 12px;border-radius:10px }
+
+.dashboard-header .btn.secondary,
+.dashboard-header .dashboard-actions .btn {
+  background:transparent;
+  border:1px solid rgba(255,255,255,0.18);
+  color:#fff;
+}
+
+.dashboard-header .brand .tag,
+.dashboard-header .user-info.small {
+  color: rgba(245, 247, 255, 0.95);
+}
 
 .dashboard-content{ padding-top:80px }
 .dashboard-container{ max-width:1100px;margin:20px auto;padding:0 18px }
@@ -707,6 +722,11 @@ body.dashboard-page .dashboard-container.dashboard-shell {
   padding: 0 18px;
 }
 
+body.dashboard-page .dashboard-shell {
+  display: grid;
+  gap: 12px;
+}
+
 body.dashboard-page .dash-hero-card,
 body.dashboard-page .dash-toolbar-card,
 body.dashboard-page .dash-main-card,
@@ -785,11 +805,15 @@ body.dashboard-page .dash-stat-card .stat-label {
 }
 
 body.dashboard-page .dash-toolbar-card {
-  margin-top: 12px;
   padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+body.dashboard-page #workoutCount {
+  font-weight: 700;
+  color: #42436b;
 }
 
 body.dashboard-page .dash-toolbar-actions {
@@ -819,20 +843,36 @@ body.dashboard-page .dash-toolbar-actions .search:focus {
 }
 
 body.dashboard-page #error {
-  margin-top: 10px;
+  margin: 0;
 }
 
 body.dashboard-page .dash-layout {
-  margin-top: 14px;
+  margin-top: 6px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 330px;
   gap: 14px;
   align-items: start;
+}
+
+body.dashboard-page .dash-main-stack {
+  display: grid;
+  gap: 12px;
 }
 
 body.dashboard-page .dash-main-card,
 body.dashboard-page .dash-side-card {
   padding: 14px;
+}
+
+body.dashboard-page .dash-side-card {
+  position: sticky;
+  top: 92px;
+}
+
+body.dashboard-page .dash-side {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
 }
 
 body.dashboard-page .dash-main-card {
@@ -841,6 +881,14 @@ body.dashboard-page .dash-main-card {
 
 body.dashboard-page .dash-section-head {
   margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f2fa;
+  background: transparent;
+  color: inherit;
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+  text-align: left;
 }
 
 body.dashboard-page .dash-section-head h3,
@@ -852,6 +900,19 @@ body.dashboard-page .dash-side-card h3 {
 body.dashboard-page .dash-side-card h3 {
   padding-bottom: 8px;
   border-bottom: 1px solid #f1f2fa;
+}
+
+body.dashboard-page .dash-stats-panel .dash-stats-grid {
+  grid-template-columns: 1fr;
+}
+
+body.dashboard-page .dash-stats-panel .dash-stat-card {
+  text-align: left;
+  padding: 12px;
+}
+
+body.dashboard-page .dash-stats-panel .dash-stat-card .stat-label {
+  font-size: 0.84rem;
 }
 
 body.dashboard-page .workout-list {
@@ -868,6 +929,10 @@ body.dashboard-page .workout-card {
   padding: 14px;
   box-shadow: 0 8px 18px rgba(20, 20, 60, 0.05);
   transition: transform .16s ease, box-shadow .16s ease;
+}
+
+body.dashboard-page .workout-card .small.muted {
+  color: #666789;
 }
 
 body.dashboard-page .workout-card:hover {
@@ -898,6 +963,158 @@ body.dashboard-page .workout-card .cw-ex-list li {
   margin: 2px 0;
 }
 
+body.dashboard-page .workout-card .card-actions {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+body.dashboard-page .workout-card .card-actions .btn {
+  border-radius: 8px;
+}
+
+body.dashboard-page #postCount {
+  font-weight: 700;
+}
+
+body.dashboard-page .feed-head-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+body.dashboard-page .feed-subtitle {
+  margin: 2px 0 12px;
+  color: #5c6087;
+}
+
+body.dashboard-page .activity-feed-list {
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+body.dashboard-page .feed-card {
+  border-radius: 14px;
+  border: 1px solid rgba(20, 20, 60, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+  padding: 14px;
+  content-visibility: auto;
+  contain-intrinsic-size: 220px;
+}
+
+body.dashboard-page .feed-card.is-mine {
+  border-left: 4px solid rgba(74, 116, 255, 0.8);
+}
+
+body.dashboard-page .feed-card.is-community {
+  border-left: 4px solid rgba(29, 178, 122, 0.8);
+}
+
+body.dashboard-page .feed-card-top {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+body.dashboard-page .feed-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+body.dashboard-page .feed-heading {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+body.dashboard-page .feed-owner-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+body.dashboard-page .feed-owner {
+  font-weight: 700;
+  color: #202343;
+}
+
+body.dashboard-page .feed-source {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+body.dashboard-page .feed-source.mine {
+  background: rgba(74, 116, 255, 0.12);
+  color: #1f4fd1;
+}
+
+body.dashboard-page .feed-source.community {
+  background: rgba(29, 178, 122, 0.14);
+  color: #0d8657;
+}
+
+body.dashboard-page .feed-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+body.dashboard-page .feed-chip {
+  border: 1px solid rgba(39, 50, 84, 0.14);
+  background: #f7f9ff;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 12px;
+  color: #293250;
+}
+
+body.dashboard-page .feed-notes {
+  margin-top: 10px;
+  padding: 10px 11px;
+  border-radius: 10px;
+  background: rgba(236, 240, 255, 0.58);
+  border: 1px solid rgba(31, 51, 120, 0.08);
+  color: #2f3761;
+}
+
+body.dashboard-page .feed-card.empty {
+  text-align: center;
+  color: #57608f;
+}
+
+.completion-post-page textarea.cw-input {
+  min-height: 112px;
+  resize: vertical;
+}
+
+.completion-photo-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f7faff 0%, #edf3ff 100%);
+  border: 1px solid rgba(54, 94, 255, 0.15);
+}
+
+.completion-photo {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  object-fit: cover;
+}
+
 body.dashboard-page .past-list {
   display: flex;
   flex-direction: column;
@@ -910,6 +1127,12 @@ body.dashboard-page .past-card {
   border: 1px solid rgba(20, 20, 60, 0.06);
   background: #fbfbff;
   padding: 10px;
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+
+body.dashboard-page .past-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(20, 20, 60, 0.07);
 }
 
 body.dashboard-page .past-card .past-title {
@@ -922,6 +1145,7 @@ body.dashboard-page .modal-overlay {
 }
 
 body.dashboard-page .modal-panel {
+  width: min(760px, 95%);
   border: 1px solid rgba(30, 30, 60, 0.08);
   box-shadow: 0 24px 60px rgba(12, 18, 40, 0.26);
 }
@@ -970,6 +1194,10 @@ body.dashboard-page .settings-radio-row {
   margin-top: 8px;
 }
 
+body.dashboard-page .settings-radio-row input {
+  accent-color: var(--accent);
+}
+
 body.dashboard-page #addWorkout {
   position: fixed !important;
   right: 20px !important;
@@ -1001,9 +1229,47 @@ body.dashboard-page #addWorkout:focus-visible {
   box-shadow: 0 0 0 3px rgba(159, 199, 255, 0.7), 0 14px 32px rgba(67, 56, 202, 0.34);
 }
 
+body.dashboard-page .dashboard-actions .btn:focus-visible,
+body.dashboard-page .dash-toolbar-actions .search:focus-visible,
+body.dashboard-page .workout-card .btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(159, 199, 255, 0.45);
+}
+
+@keyframes dashCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.dashboard-page .dash-hero-card,
+body.dashboard-page .dash-toolbar-card,
+body.dashboard-page .dash-main-card,
+body.dashboard-page .dash-side-card,
+body.dashboard-page .workout-card {
+  animation: dashCardIn .28s ease both;
+}
+
 @media (max-width: 980px) {
   body.dashboard-page .dash-layout {
     grid-template-columns: 1fr;
+  }
+
+  body.dashboard-page .dash-side-card {
+    position: static;
+  }
+
+  body.dashboard-page .dash-stats-panel .dash-stats-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  body.dashboard-page .dash-stats-panel .dash-stat-card {
+    text-align: center;
   }
 }
 
@@ -1028,7 +1294,8 @@ body.dashboard-page #addWorkout:focus-visible {
     margin-top: 14px;
   }
 
-  body.dashboard-page .dash-stats-grid {
+  body.dashboard-page .dash-stats-grid,
+  body.dashboard-page .dash-stats-panel .dash-stats-grid {
     grid-template-columns: 1fr;
   }
 
@@ -1040,6 +1307,10 @@ body.dashboard-page #addWorkout:focus-visible {
     width: 100%;
   }
 
+  body.dashboard-page .dash-toolbar-actions .search {
+    min-width: 0;
+  }
+
   body.dashboard-page #addWorkout {
     right: 12px !important;
     bottom: 12px !important;
@@ -1047,6 +1318,35 @@ body.dashboard-page #addWorkout:focus-visible {
     min-width: 50px;
     height: 50px;
     font-size: 1.45rem;
+  }
+
+  body.dashboard-page .feed-head-actions {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  body.dashboard-page .feed-card {
+    padding: 12px;
+  }
+
+  body.dashboard-page .feed-owner-row {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.dashboard-page .dash-hero-head,
+  body.dashboard-page .dash-hero-card,
+  body.dashboard-page .dash-toolbar-card,
+  body.dashboard-page .dash-main-card,
+  body.dashboard-page .dash-side-card,
+  body.dashboard-page .workout-card,
+  body.dashboard-page .past-card,
+  body.dashboard-page #addWorkout {
+    animation: none !important;
+    transition: none !important;
   }
 }
 
