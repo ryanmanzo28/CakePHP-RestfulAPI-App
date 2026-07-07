@@ -315,643 +315,6 @@ button{ cursor:pointer }
 /* Reduce strong contrast in default backgrounds for better cohesion */
 body { color: #0d1220 }
 
-.dashboard-overview h2{ margin:0 0 12px 0;font-size:1.1rem;color:#161627 }
-
-body.dashboard-page .dashboard-content {
-  padding-top: 92px;
-}
-
-body.dashboard-page .dashboard-container {
-  max-width: 1180px;
-}
-
-.dashboard-hero {
-  background: linear-gradient(135deg, rgba(255,255,255,0.86), rgba(248,249,255,0.86));
-  border: 1px solid rgba(20,20,60,0.06);
-  border-radius: 14px;
-  padding: 16px 18px;
-  box-shadow: 0 12px 28px rgba(20,20,60,0.06);
-  margin-bottom: 14px;
-}
-
-.hero-copy h2 {
-  margin: 0;
-}
-
-.hero-subtitle {
-  margin: 6px 0 0;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.hero-chip {
-  background: rgba(67,56,202,0.1);
-  color: #2f2a86;
-  border: 1px solid rgba(67,56,202,0.16);
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
-.dashboard-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
-  background: rgba(255,255,255,0.85);
-  border: 1px solid rgba(20,20,60,0.05);
-  border-radius: 14px;
-  padding: 12px;
-}
-
-.toolbar-metrics {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.metrics-grid {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.compact-stat {
-  min-width: 112px;
-  padding: 10px 12px;
-  box-shadow: none;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: nowrap;
-}
-
-.toolbar-actions .search {
-  width: 260px;
-}
-
-body.dashboard-page #addWorkout {
-  position: fixed !important;
-  right: 22px !important;
-  bottom: 22px !important;
-  display: inline-flex;
-  align-items: center;
-  gap: 0;
-  width: 58px;
-  min-width: 58px;
-  height: 58px;
-  justify-content: center;
-  background: linear-gradient(135deg, #3f55ff 0%, #4f46e5 55%, #4338ca 100%);
-  color: #fff;
-  border: 1px solid rgba(255,255,255,0.22);
-  box-shadow: 0 14px 34px rgba(67,56,202,0.38), inset 0 1px 0 rgba(255,255,255,0.22);
-  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease, background .16s ease;
-  font-size: 1.8rem;
-  font-weight: 800;
-  line-height: 1;
-  border-radius: 999px;
-  z-index: 220;
-}
-
-body.dashboard-page #addWorkout:hover {
-  background: linear-gradient(135deg, #5a72ff 0%, #5d58f0 58%, #4f46e5 100%);
-  box-shadow: 0 14px 30px rgba(79,70,229,0.34), inset 0 1px 0 rgba(255,255,255,0.3);
-  transform: translateY(-2px);
-  filter: saturate(1.08);
-}
-
-body.dashboard-page #addWorkout:active {
-  transform: translateY(0) scale(0.97);
-  box-shadow: 0 7px 14px rgba(67,56,202,0.26), inset 0 2px 6px rgba(25,25,75,0.24);
-}
-
-body.dashboard-page #addWorkout:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(159,199,255,0.7), 0 10px 24px rgba(67,56,202,0.28);
-}
-
-/* Dashboard v2 overhaul */
-body.dashboard-page {
-  overflow-x: hidden;
-  background:
-    radial-gradient(1200px 520px at 12% -8%, rgba(130, 184, 255, 0.28), transparent 62%),
-    radial-gradient(1000px 460px at 95% 8%, rgba(121, 107, 255, 0.22), transparent 58%),
-    linear-gradient(165deg, #f4f7ff 0%, #eef2ff 42%, #e8ecff 100%);
-}
-
-body.dashboard-page .dashboard-header {
-  background: rgba(20, 29, 72, 0.68);
-  border-bottom: 1px solid rgba(180, 202, 255, 0.22);
-}
-
-body.dashboard-page .dashboard-header-inner {
-  max-width: 1240px;
-}
-
-body.dashboard-page .dashboard-title {
-  letter-spacing: 0.2px;
-}
-
-body.dashboard-page .dashboard-actions .btn {
-  border: 1px solid rgba(210, 225, 255, 0.28);
-  background: rgba(255,255,255,0.08);
-  color: #f1f5ff;
-}
-body.dashboard-page .dashboard-content {
-  padding-top: 82px;
-}
-
-body.dashboard-page .dashboard-container.dashboard-redo {
-  max-width: 1220px;
-  margin: 12px auto 22px;
-  padding: 0 14px;
-}
-
-body.dashboard-page .redo-hero {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 14px;
-  align-items: stretch;
-  border-radius: 14px;
-  padding: 14px;
-  border: 1px solid rgba(96, 120, 214, 0.18);
-  background: linear-gradient(130deg, rgba(255,255,255,0.9), rgba(245,249,255,0.9));
-  box-shadow: 0 10px 24px rgba(28, 44, 110, 0.08);
-}
-
-body.dashboard-page .redo-eyebrow {
-  margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #5161a8;
-  font-weight: 700;
-}
-
-body.dashboard-page .redo-hero h2 {
-  margin: 4px 0 6px;
-  font-size: clamp(1.2rem, 2.2vw, 1.7rem);
-  color: #1a2554;
-}
-
-body.dashboard-page .redo-subtitle {
-  margin: 0;
-  color: #5b6393;
-  font-size: 0.93rem;
-}
-
-body.dashboard-page .redo-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-body.dashboard-page .redo-stat-card {
-  border-radius: 10px;
-  padding: 10px;
-  border: 1px solid rgba(99, 122, 214, 0.16);
-  background: #fff;
-  text-align: center;
-}
-
-body.dashboard-page .redo-toolbar {
-  margin-top: 10px;
-  border-radius: 12px;
-  padding: 10px 12px;
-  border: 1px solid rgba(98, 119, 206, 0.14);
-  background: rgba(255,255,255,0.88);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-body.dashboard-page .redo-toolbar-actions {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 220px;
-}
-
-body.dashboard-page .redo-toolbar .search {
-  width: 100%;
-  min-width: 160px;
-}
-
-body.dashboard-page .redo-layout {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
-  gap: 14px;
-  align-items: start;
-}
-
-body.dashboard-page .redo-main,
-body.dashboard-page .redo-side-card {
-  border-radius: 12px;
-  border: 1px solid rgba(98, 122, 218, 0.14);
-  background: rgba(255,255,255,0.9);
-  box-shadow: 0 10px 22px rgba(28, 44, 112, 0.08);
-  padding: 12px;
-}
-
-body.dashboard-page .redo-section-head h3 {
-  margin: 0;
-  color: #1a2554;
-}
-
-body.dashboard-page .redo-side-card h3 {
-  margin: 0 0 8px;
-}
-
-body.dashboard-page #addWorkout {
-  position: fixed !important;
-  right: 20px !important;
-  bottom: 20px !important;
-  z-index: 300 !important;
-  width: 56px;
-  min-width: 56px;
-  height: 56px;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.26);
-  background: linear-gradient(135deg, #4360ff 0%, #4f46e5 60%, #3d36b9 100%);
-  box-shadow: 0 16px 34px rgba(50, 64, 176, 0.36), inset 0 1px 0 rgba(255,255,255,0.25);
-  font-size: 1.75rem;
-  line-height: 1;
-}
-
-body.dashboard-page #addWorkout:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-}
-
-@media (max-width: 1024px) {
-  body.dashboard-page .redo-hero {
-    grid-template-columns: 1fr;
-  }
-
-  body.dashboard-page .redo-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 700px) {
-  body.dashboard-page .dashboard-content {
-    padding-top: 74px;
-  }
-
-  body.dashboard-page .dashboard-container.dashboard-redo {
-    padding: 0 10px;
-  }
-
-  body.dashboard-page .redo-stats {
-    grid-template-columns: 1fr;
-  }
-
-  body.dashboard-page .redo-toolbar {
-    flex-wrap: wrap;
-  }
-
-  body.dashboard-page .redo-toolbar-actions {
-    width: 100%;
-    min-width: 0;
-  }
-
-  body.dashboard-page #addWorkout {
-    right: 12px !important;
-    bottom: 12px !important;
-    width: 50px;
-    min-width: 50px;
-    height: 50px;
-    font-size: 1.45rem;
-  }
-}
-
-body.dashboard-page .dashboard-actions .btn:hover {
-  background: rgba(255,255,255,0.15);
-}
-
-body.dashboard-page .dashboard-content {
-  padding-top: 86px;
-}
-
-body.dashboard-page .dashboard-container {
-  max-width: 1320px;
-  margin: 14px auto;
-  padding: 0 18px;
-}
-
-body.dashboard-page .dashboard-hero-v2 {
-  position: relative;
-  overflow: hidden;
-  display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 14px;
-  margin-bottom: 12px;
-  border-radius: 18px;
-  padding: 16px 18px;
-  background:
-    linear-gradient(120deg, rgba(42,69,210,0.95) 0%, rgba(74,97,255,0.93) 48%, rgba(101,150,255,0.86) 100%);
-  box-shadow: 0 20px 44px rgba(35, 45, 115, 0.3);
-  border: 1px solid rgba(168, 195, 255, 0.33);
-}
-
-body.dashboard-page .dashboard-hero-v2::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(105deg, rgba(255,255,255,0.13), rgba(255,255,255,0));
-  pointer-events: none;
-}
-
-body.dashboard-page .eyebrow {
-  margin: 0;
-  color: rgba(235, 242, 255, 0.86);
-  text-transform: uppercase;
-  letter-spacing: 1.1px;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-body.dashboard-page .dashboard-hero-v2 h2 {
-  margin: 6px 0 8px;
-  color: #fff;
-  font-size: clamp(1.2rem, 2.2vw, 1.72rem);
-  line-height: 1.12;
-  letter-spacing: -0.3px;
-}
-
-body.dashboard-page .dashboard-hero-v2 .hero-subtitle {
-  color: rgba(241, 247, 255, 0.9);
-  max-width: 54ch;
-  margin: 0;
-  font-size: 0.93rem;
-}
-
-body.dashboard-page .hero-v2-cards {
-  display: grid;
-  align-content: center;
-  gap: 10px;
-}
-
-body.dashboard-page .hero-mini-card {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-radius: 11px;
-  padding: 8px 10px;
-  background: rgba(255,255,255,0.16);
-  border: 1px solid rgba(208, 224, 255, 0.34);
-  color: #fff;
-  backdrop-filter: blur(3px);
-}
-
-body.dashboard-page .hero-mini-card span {
-  color: rgba(235, 242, 255, 0.9);
-  font-size: 0.82rem;
-}
-
-body.dashboard-page .hero-mini-card strong {
-  font-size: 0.92rem;
-  letter-spacing: 0.25px;
-}
-
-body.dashboard-page .dashboard-hero {
-  margin-bottom: 12px;
-  border-radius: 15px;
-  background: rgba(255,255,255,0.8);
-  border: 1px solid rgba(115, 132, 220, 0.14);
-  box-shadow: 0 10px 24px rgba(40, 55, 130, 0.09);
-}
-
-body.dashboard-page .command-bar {
-  border-radius: 15px;
-  padding: 10px;
-  border: 1px solid rgba(130, 145, 228, 0.2);
-  background: rgba(255,255,255,0.84);
-  box-shadow: 0 12px 26px rgba(44, 54, 130, 0.1);
-  margin-bottom: 14px;
-}
-
-body.dashboard-page .compact-stat {
-  border: 1px solid rgba(121, 141, 235, 0.14);
-  background: linear-gradient(180deg, #ffffff, #f6f8ff);
-}
-
-body.dashboard-page .workspace-panel {
-  border-radius: 16px;
-  border: 1px solid rgba(120, 138, 228, 0.18);
-  background: rgba(255,255,255,0.87);
-  box-shadow: 0 16px 34px rgba(38, 50, 120, 0.11);
-  padding: 14px;
-}
-
-body.dashboard-page .dashboard-columns {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
-  gap: 18px;
-  align-items: start;
-}
-
-body.dashboard-page .past-column {
-  width: auto;
-  flex: initial;
-}
-
-body.dashboard-page .panel-head {
-  align-items: baseline;
-  margin-bottom: 10px;
-}
-
-body.dashboard-page .panel-head h3 {
-  margin: 0;
-  font-size: 1.02rem;
-  letter-spacing: 0.2px;
-}
-
-body.dashboard-page .dashboard-grid {
-  margin-top: 0;
-}
-
-body.dashboard-page .workout-card {
-  border: 1px solid rgba(118, 137, 228, 0.17);
-  background: linear-gradient(180deg, #ffffff 0%, #f7f9ff 100%);
-  box-shadow: 0 10px 22px rgba(42, 56, 130, 0.11);
-}
-
-body.dashboard-page .workout-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 18px 36px rgba(45, 57, 125, 0.16);
-}
-
-body.dashboard-page .insight-column {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-body.dashboard-page .insight-card {
-  border-radius: 14px;
-  padding: 10px;
-  border: 1px solid rgba(121, 141, 235, 0.17);
-  background: rgba(255,255,255,0.85);
-  box-shadow: 0 11px 24px rgba(40, 53, 126, 0.11);
-}
-
-body.dashboard-page .insight-title {
-  margin: 0 0 8px;
-  font-size: 0.78rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-body.dashboard-page .quick-notes ul {
-  margin: 0;
-  padding-left: 18px;
-  color: #2a2f54;
-}
-
-body.dashboard-page .quick-notes li {
-  margin: 0 0 8px;
-  font-size: 0.88rem;
-}
-
-body.dashboard-page .quick-notes li:last-child {
-  margin-bottom: 0;
-}
-
-@media (max-width: 1040px) {
-  body.dashboard-page .dashboard-columns {
-    display: flex;
-    flex-direction: column;
-  }
-
-  body.dashboard-page .past-column {
-    width: 100%;
-    flex: 1 1 auto;
-    position: static;
-  }
-
-  body.dashboard-page .dashboard-hero-v2 {
-    grid-template-columns: 1fr;
-  }
-
-  body.dashboard-page .hero-v2-cards {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    display: grid;
-  }
-}
-
-@media (max-width: 980px) {
-  body.dashboard-page .dashboard-content {
-    padding-top: 78px;
-  }
-
-  body.dashboard-page .metrics-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  body.dashboard-page .command-bar {
-    gap: 12px;
-  }
-
-  body.dashboard-page .compact-stat {
-    min-width: 0;
-  }
-
-  body.dashboard-page .toolbar-actions .search {
-    width: min(100%, 320px);
-  }
-}
-
-@media (max-width: 760px) {
-  body.dashboard-page .dashboard-header-inner {
-    padding: 10px 12px;
-  }
-
-  body.dashboard-page .dashboard-actions {
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
-  body.dashboard-page .hero-v2-cards {
-    grid-template-columns: 1fr;
-  }
-
-  body.dashboard-page .toolbar-actions {
-    flex-wrap: nowrap;
-  }
-
-  body.dashboard-page .metrics-grid {
-    grid-template-columns: 1fr;
-  }
-
-  body.dashboard-page #addWorkout {
-    width: 52px;
-    min-width: 52px;
-    height: 52px;
-    right: 14px !important;
-    bottom: 14px !important;
-    font-size: 1.5rem;
-  }
-
-  body.dashboard-page .toolbar-actions .search {
-    width: auto;
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-}
-
-.dashboard-grid{ display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:12px }
-
-.workout-card{ background:rgba(255,255,255,0.95);border-radius:12px;padding:14px;border:1px solid rgba(20,20,60,0.04);box-shadow:0 8px 18px rgba(20,20,60,0.04); will-change: transform, opacity; transform: translateZ(0); }
-.workout-card h3{ margin:0 0 6px 0;font-size:1rem }
-.workout-card p{ margin:0;color:#444;font-size:0.95rem }
-
-.workout-card{ transition:transform .12s ease, box-shadow .12s ease, opacity .12s ease }
-.workout-card:hover{ transform: translateY(-6px); box-shadow: 0 18px 40px rgba(20,20,60,0.08) }
-
-/* Dashboard two-column layout */
-.dashboard-columns{ display:flex; gap:20px; align-items:flex-start }
-.main-column{ flex:1 }
-.past-column{ width:300px; flex:0 0 300px }
-.past-list{ display:flex; flex-direction:column; gap:12px }
-.past-card{ background:linear-gradient(180deg,#fff,#fbfbff); padding:10px 12px; border-radius:10px; box-shadow:0 8px 18px rgba(20,20,60,0.04); border:1px solid rgba(20,20,60,0.03) }
-.past-title{ font-weight:700; margin-top:4px }
-.past-card .small.muted{ color:var(--muted); font-size:0.9rem }
-
-/* Make past column sticky and responsive */
-.past-column{ position:sticky; top:92px; align-self:flex-start }
-@media (max-width:980px){ .dashboard-columns{ flex-direction:column } .past-column{ position:static; width:auto; order:2 } }
-
-@media (max-width:980px){
-  .dashboard-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .toolbar-actions {
-    width: 100%;
-  }
-
-  .toolbar-actions .search {
-    flex: 1;
-    width: auto;
-  }
-}
 
 /* search input */
 .search{ border-radius:8px; padding:8px 10px; border:1px solid rgba(20,20,60,0.06); background:#fff }
@@ -1289,4 +652,401 @@ body .cw-inline-duration-input{ padding:6px 8px;border-radius:8px;border:1px sol
 }
 .snackbar .action { background: transparent; border: 1px solid rgba(255,255,255,0.14); color: #fff; padding:6px 10px; border-radius:8px; cursor: pointer }
 .snackbar.hide { display: none }
+
+/* Dashboard layout aligned with shared app cards and form controls */
+body.dashboard-page {
+  min-height: 100vh;
+}
+
+body.dashboard-page .dashboard-header {
+  background: rgba(16, 17, 40, 0.24);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+body.dashboard-page .dashboard-header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.dashboard-page .dashboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.dashboard-page .dashboard-actions .user-info {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  color: #f4f6ff;
+  padding: 6px 10px;
+}
+
+body.dashboard-page .dashboard-actions .btn {
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.09);
+  color: #ffffff;
+}
+
+body.dashboard-page .dashboard-actions .btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+body.dashboard-page .dashboard-content {
+  padding-top: 84px;
+}
+
+body.dashboard-page .dashboard-container.dashboard-shell {
+  max-width: 1100px;
+  margin: 22px auto;
+  padding: 0 18px;
+}
+
+body.dashboard-page .dash-hero-card,
+body.dashboard-page .dash-toolbar-card,
+body.dashboard-page .dash-main-card,
+body.dashboard-page .dash-side-card {
+  border-radius: 12px;
+  border: 1px solid rgba(30, 30, 60, 0.05);
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(20, 20, 60, 0.06);
+}
+
+body.dashboard-page .dash-hero-card {
+  padding: 14px;
+}
+
+body.dashboard-page .dash-hero-head {
+  margin: 0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: linear-gradient(90deg, #9fc7ff, #6f9bff);
+  background-size: 300% 300%;
+  animation: dashboardHeroShift 20s ease-in-out infinite;
+}
+
+@keyframes dashboardHeroShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+body.dashboard-page .dash-eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.88);
+  font-weight: 700;
+}
+
+body.dashboard-page .dash-hero-head h2 {
+  margin: 6px 0 8px;
+  color: #ffffff;
+  font-size: 1.7rem;
+}
+
+body.dashboard-page .dash-subtitle {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.94);
+  max-width: 62ch;
+}
+
+body.dashboard-page .dash-stats-grid {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+body.dashboard-page .dash-stat-card {
+  border: 1px solid #ececf8;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff, #fafaff);
+  padding: 14px;
+  text-align: center;
+}
+
+body.dashboard-page .dash-stat-card .stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--accent-2);
+}
+
+body.dashboard-page .dash-stat-card .stat-label {
+  color: var(--muted);
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+body.dashboard-page .dash-toolbar-card {
+  margin-top: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.dashboard-page .dash-toolbar-actions {
+  margin-left: auto;
+  width: min(380px, 100%);
+}
+
+body.dashboard-page .dash-toolbar-actions .search {
+  width: 100%;
+  min-width: 200px;
+  border-radius: 10px;
+  border: 1px solid #e9e9f5;
+  background: #fbfbff;
+  padding: 11px 14px;
+  font-size: 1rem;
+  transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+body.dashboard-page .dash-toolbar-actions .search::placeholder {
+  color: #b4b5d7;
+}
+
+body.dashboard-page .dash-toolbar-actions .search:focus {
+  outline: none;
+  box-shadow: 0 6px 18px rgba(91, 43, 255, 0.12);
+  border-color: var(--accent);
+}
+
+body.dashboard-page #error {
+  margin-top: 10px;
+}
+
+body.dashboard-page .dash-layout {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 14px;
+  align-items: start;
+}
+
+body.dashboard-page .dash-main-card,
+body.dashboard-page .dash-side-card {
+  padding: 14px;
+}
+
+body.dashboard-page .dash-main-card {
+  background: linear-gradient(180deg, #ffffff, #fdfdff);
+}
+
+body.dashboard-page .dash-section-head {
+  margin-bottom: 12px;
+}
+
+body.dashboard-page .dash-section-head h3,
+body.dashboard-page .dash-side-card h3 {
+  margin: 0;
+  color: #161627;
+}
+
+body.dashboard-page .dash-side-card h3 {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f1f2fa;
+}
+
+body.dashboard-page .workout-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+body.dashboard-page .workout-card {
+  min-height: 140px;
+  border: 1px solid rgba(20, 20, 60, 0.06);
+  background: linear-gradient(180deg, #ffffff, #fafaff);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 8px 18px rgba(20, 20, 60, 0.05);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+body.dashboard-page .workout-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(20, 20, 60, 0.08);
+}
+
+body.dashboard-page .workout-card h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  line-height: 1.25;
+  color: #1a1a33;
+}
+
+body.dashboard-page .workout-card p {
+  margin: 8px 0 0;
+  color: #525274;
+  font-size: 0.94rem;
+}
+
+body.dashboard-page .workout-card .cw-ex-list {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #4a4b72;
+}
+
+body.dashboard-page .workout-card .cw-ex-list li {
+  margin: 2px 0;
+}
+
+body.dashboard-page .past-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+body.dashboard-page .past-card {
+  border-radius: 10px;
+  border: 1px solid rgba(20, 20, 60, 0.06);
+  background: #fbfbff;
+  padding: 10px;
+}
+
+body.dashboard-page .past-card .past-title {
+  color: #1f2143;
+  font-weight: 700;
+}
+
+body.dashboard-page .modal-overlay {
+  backdrop-filter: blur(2px);
+}
+
+body.dashboard-page .modal-panel {
+  border: 1px solid rgba(30, 30, 60, 0.08);
+  box-shadow: 0 24px 60px rgba(12, 18, 40, 0.26);
+}
+
+body.dashboard-page .modal-panel h2 {
+  margin-top: 0;
+}
+
+body.dashboard-page #modalMeta {
+  margin-bottom: 6px;
+}
+
+body.dashboard-page .modal-close-btn {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+}
+
+body.dashboard-page .modal-notes {
+  margin-bottom: 10px;
+  color: #444;
+}
+
+body.dashboard-page .modal-actions,
+body.dashboard-page .settings-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+body.dashboard-page .settings-radio-row label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #34345d;
+}
+
+body.dashboard-page .settings-block {
+  margin-top: 8px;
+}
+
+body.dashboard-page .settings-radio-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+body.dashboard-page #addWorkout {
+  position: fixed !important;
+  right: 20px !important;
+  bottom: 20px !important;
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+  box-shadow: 0 14px 32px rgba(67, 56, 202, 0.34);
+  color: #ffffff;
+  z-index: 260;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+body.dashboard-page #addWorkout:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.06);
+}
+
+body.dashboard-page #addWorkout:active {
+  transform: translateY(0) scale(0.97);
+}
+
+body.dashboard-page #addWorkout:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(159, 199, 255, 0.7), 0 14px 32px rgba(67, 56, 202, 0.34);
+}
+
+@media (max-width: 980px) {
+  body.dashboard-page .dash-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  body.dashboard-page .dashboard-header-inner {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+  }
+
+  body.dashboard-page .dashboard-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  body.dashboard-page .dashboard-content {
+    padding-top: 78px;
+  }
+
+  body.dashboard-page .dashboard-container.dashboard-shell {
+    padding: 0 12px;
+    margin-top: 14px;
+  }
+
+  body.dashboard-page .dash-stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.dashboard-page .dash-toolbar-card {
+    flex-wrap: wrap;
+  }
+
+  body.dashboard-page .dash-toolbar-actions {
+    width: 100%;
+  }
+
+  body.dashboard-page #addWorkout {
+    right: 12px !important;
+    bottom: 12px !important;
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    font-size: 1.45rem;
+  }
+}
 
