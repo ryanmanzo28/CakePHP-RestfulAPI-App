@@ -80,7 +80,7 @@
     <script>
       (function(){
         const token = localStorage.getItem('jwt') || '';
-        if(!token){ window.location.href = 'login.html'; return; }
+        if(!token){ window.location.href = '/pages/login.html'; return; }
 
         document.getElementById('username').textContent = localStorage.getItem('username') || '';
 
@@ -90,13 +90,13 @@
         const postId = queryId || pendingId;
 
         if(!postId || !window.getCompletedPostById){
-          window.location.href = 'past_workouts.html';
+          window.location.href = '/pages/past_workouts.html';
           return;
         }
 
         let post = window.getCompletedPostById(postId);
         if(!post){
-          window.location.href = 'past_workouts.html';
+          window.location.href = '/pages/past_workouts.html';
           return;
         }
 
@@ -127,7 +127,7 @@
 
         document.getElementById('skipBtn').addEventListener('click', function(){
           sessionStorage.removeItem('hc:pendingCompletedPostId');
-          window.location.href = 'past_workouts.html';
+          window.location.href = '/pages/past_workouts.html';
         });
 
         postPhoto.addEventListener('change', function(){
@@ -179,7 +179,7 @@
           }
 
           sessionStorage.removeItem('hc:pendingCompletedPostId');
-          window.location.href = 'past_workouts.html';
+          window.location.href = '/pages/past_workouts.html';
         });
       })();
     </script>

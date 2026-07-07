@@ -82,7 +82,7 @@
     <script>
     (function(){
       const token = localStorage.getItem('jwt')||'';
-      if(!token){ window.location.href='login.html'; return; }
+      if(!token){ window.location.href='/pages/login.html'; return; }
       document.getElementById('username').textContent = localStorage.getItem('username')||'';
 
       const raw = sessionStorage.getItem('hc:currentWorkout');
@@ -205,10 +205,10 @@
               sessionStorage.removeItem(sessionKey);
               if (post && post.id) {
                 sessionStorage.setItem('hc:pendingCompletedPostId', post.id);
-                window.location.href = 'complete_workout_post.html';
+                window.location.href = '/pages/complete_workout_post.html';
               } else {
                 alert('Workout complete!');
-                window.location.href = 'dashboard.html';
+                window.location.href = '/pages/dashboard.html';
               }
               return;
             }
@@ -318,20 +318,20 @@
         sessionStorage.removeItem(sessionKey);
         if (post && post.id) {
           sessionStorage.setItem('hc:pendingCompletedPostId', post.id);
-          window.location.href='complete_workout_post.html';
+          window.location.href='/pages/complete_workout_post.html';
         } else {
-          window.location.href='dashboard.html';
+          window.location.href='/pages/dashboard.html';
         }
       });
 
-      document.getElementById('endSession').addEventListener('click', function(){ if(confirm('End session and return to dashboard?')){ stopTicker(); window.location.href='dashboard.html'; } });
+      document.getElementById('endSession').addEventListener('click', function(){ if(confirm('End session and return to dashboard?')){ stopTicker(); window.location.href='/pages/dashboard.html'; } });
 
       // keyboard shortcuts: Space = next, P = pause/resume, Esc = finish
       document.addEventListener('keydown', function(e){
         if(e.code === 'Space' && document.activeElement && ['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) return; // don't intercept typing
         if(e.code === 'Space'){ e.preventDefault(); document.getElementById('completeEx').click(); }
         if(e.key === 'p' || e.key === 'P'){ document.getElementById('pauseResume').click(); }
-        if(e.key === 'Escape'){ if(confirm('End session and return to dashboard?')){ stopTicker(); window.location.href='dashboard.html'; } }
+        if(e.key === 'Escape'){ if(confirm('End session and return to dashboard?')){ stopTicker(); window.location.href='/pages/dashboard.html'; } }
       });
 
       // initial render

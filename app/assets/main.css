@@ -1,5 +1,4 @@
-
-@view-transition {
+view-transition {
   navigation: auto;
 }
 :root{
@@ -68,8 +67,6 @@ body::after {
 
     opacity: 0.035;
     mix-blend-mode: overlay;
-    transform: translateZ(0);
-    will-change: opacity, transform;
 }
 
 .login-wrapper{
@@ -130,7 +127,41 @@ body.auth-page {
 .actions{ margin-top:var(--space-md);display:flex;justify-content:flex-end }
 .btn{ padding:9px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;letter-spacing:0.2px }
 .btn.primary{ background:var(--accent);color:#fff;box-shadow:0 6px 14px rgba(79,70,229,0.10);transition:transform .12s ease,box-shadow .12s ease }
-.btn.primary, .btn.secondary { will-change: transform, opacity; transform: translateZ(0); }
+.btn.primary,
+.btn.secondary,
+#addWorkout,
+.modal-panel,
+.snackbar,
+#currentExercise,
+.ring-visual .ring-fg {
+  transform: translateZ(0);
+}
+
+.btn.primary,
+.btn.secondary,
+#addWorkout,
+.modal-panel,
+.snackbar,
+#currentExercise,
+.ring-visual .ring-fg,
+body.dashboard-page .workout-card,
+body.dashboard-page .past-card,
+body.dashboard-page .feed-card {
+  backface-visibility: hidden;
+}
+
+.btn.primary:hover,
+.btn.secondary:hover,
+#addWorkout:hover,
+.modal-panel,
+.snackbar,
+#currentExercise,
+.ring-visual .ring-fg,
+body.dashboard-page .workout-card,
+body.dashboard-page .past-card,
+body.dashboard-page .feed-card {
+  will-change: transform, opacity;
+}
 .btn.primary:hover{ transform:translateY(-2px);box-shadow:0 12px 26px rgba(79,70,229,0.14) }
 .btn.primary:active{ transform:translateY(0);box-shadow:0 6px 14px rgba(79,70,229,0.10) }
 
@@ -194,7 +225,6 @@ body.auth-page {
     border-radius: inherit;
     animation: headerBgShift 20s ease-in-out infinite;
     filter: brightness(1);
-        transform: translateZ(0);
 }
 
     /* keep header content above the moving background */
@@ -929,6 +959,7 @@ body.dashboard-page .workout-card {
   padding: 14px;
   box-shadow: 0 8px 18px rgba(20, 20, 60, 0.05);
   transition: transform .16s ease, box-shadow .16s ease;
+  transform: translateZ(0);
 }
 
 body.dashboard-page .workout-card .small.muted {
@@ -999,6 +1030,7 @@ body.dashboard-page .feed-card {
   padding: 14px;
   content-visibility: auto;
   contain-intrinsic-size: 220px;
+  transform: translateZ(0);
 }
 
 body.dashboard-page .feed-card.is-mine {
@@ -1128,6 +1160,7 @@ body.dashboard-page .past-card {
   background: #fbfbff;
   padding: 10px;
   transition: transform .14s ease, box-shadow .14s ease;
+  transform: translateZ(0);
 }
 
 body.dashboard-page .past-card:hover {
@@ -1213,6 +1246,7 @@ body.dashboard-page #addWorkout {
   z-index: 260;
   font-size: 1.75rem;
   line-height: 1;
+  transform: translateZ(0);
 }
 
 body.dashboard-page #addWorkout:hover {

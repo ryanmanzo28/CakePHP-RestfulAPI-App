@@ -38,7 +38,7 @@
       const raw = sessionStorage.getItem('hc:selectedWorkout') || sessionStorage.getItem('hc:currentWorkout');
       const w = raw ? JSON.parse(raw) : null;
       document.getElementById('username').textContent = localStorage.getItem('username')||'';
-      document.getElementById('back').addEventListener('click', ()=>{ window.location.href='dashboard.html'; });
+      document.getElementById('back').addEventListener('click', ()=>{ window.location.href='/pages/dashboard.html'; });
       if(!w){ document.getElementById('title').textContent='No workout'; document.getElementById('detailList').textContent='No data.'; return; }
       document.getElementById('title').textContent = w.title || 'Workout';
       document.getElementById('meta').textContent = (w.date? w.date + ' • ' : '') + (w.duration? (w.duration+'m') : '');
@@ -51,8 +51,8 @@
         const ul=document.createElement('ul'); ul.style.marginTop='8px'; data.exercises.forEach(ex=>{ const li=document.createElement('li'); li.textContent = ex.name + (ex.reps? ' • '+ex.reps+' reps':'') + (ex.weight? ' • '+ex.weight+(data.weightUnit||'') : ''); ul.appendChild(li); }); list.appendChild(ul);
       }
 
-      document.getElementById('startWorkout').addEventListener('click', function(){ try{ sessionStorage.setItem('hc:currentWorkout', JSON.stringify(w)); }catch(e){} window.location.href='workout_session.html'; });
-      document.getElementById('editWorkout').addEventListener('click', function(){ try{ sessionStorage.setItem('hc:selectedWorkout', JSON.stringify(w)); }catch(e){} window.location.href='addworkout.html'; });
+      document.getElementById('startWorkout').addEventListener('click', function(){ try{ sessionStorage.setItem('hc:currentWorkout', JSON.stringify(w)); }catch(e){} window.location.href='/pages/workout_session.html'; });
+      document.getElementById('editWorkout').addEventListener('click', function(){ try{ sessionStorage.setItem('hc:selectedWorkout', JSON.stringify(w)); }catch(e){} window.location.href='/pages/addworkout.html'; });
     })();
     </script>
   </body>

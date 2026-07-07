@@ -96,7 +96,7 @@
                             localStorage.setItem('username', email);
                             localStorage.setItem('passwordHash', hashed);
                             // Redirect to dashboard page (same directory)
-                            window.location.href = 'dashboard.html';
+                            window.location.href = '/pages/dashboard.html';
                         } else {
                             err.textContent = 'Login response missing token.';
                         }

@@ -9,7 +9,7 @@ async function init() {
 
     if (!token && !isLoginPage) {
         console.log("User not logged in. Redirecting to login page.");
-        window.location.href = "pages/login.html";
+        window.location.href = "/pages/login.html";
         return;
     }
 
@@ -17,7 +17,7 @@ async function init() {
         console.log("User token found in localStorage.");
         // If we are on the login page, send user to dashboard
         if (isLoginPage) {
-            window.location.href = "pages/dashboard.html";
+            window.location.href = "/pages/dashboard.html";
             return;
         }
         // Validate token; loginCheck will redirect to login on failure
@@ -110,7 +110,7 @@ async function loginCheck() {
     const token = localStorage.getItem("jwt");
 
     if (!token) {
-        window.location.href = "pages/login.html";
+        window.location.href = "/pages/login.html";
         return;
     }
 
@@ -126,14 +126,14 @@ async function loginCheck() {
 
     if (!response.ok) {
         localStorage.removeItem('jwt');
-        window.location.href = "pages/login.html";
+        window.location.href = "/pages/login.html";
         return;
     }
 
     const data = await response.json().catch(() => null);
     if (!data || !data.valid) {
         localStorage.removeItem('jwt');
-        window.location.href = "pages/login.html";
+        window.location.href = "/pages/login.html";
     }
 }
 

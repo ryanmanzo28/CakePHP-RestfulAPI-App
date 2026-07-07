@@ -135,7 +135,7 @@
                 const token = localStorage.getItem('jwt') ?? '';
                 const username = localStorage.getItem('username') || '';
                 if (!token) {
-                    window.location.href = 'login.html';
+                    window.location.href = '/pages/login.html';
                     return;
                 }
 
@@ -144,14 +144,14 @@
                     localStorage.removeItem('jwt');
                     localStorage.removeItem('username');
                     localStorage.removeItem('passwordHash');
-                    window.location.href = 'login.html';
+                    window.location.href = '/pages/login.html';
                 });
 
                 // settings button
                 const settingsBtn = document.getElementById('settingsBtn'); if(settingsBtn) settingsBtn.addEventListener('click', function(){ openSettings(); });
                 const settingsClose = document.getElementById('settingsClose'); if(settingsClose) settingsClose.addEventListener('click', function(){ closeSettings(); });
                 const settingsSave = document.getElementById('settingsSave'); if(settingsSave) settingsSave.addEventListener('click', function(){ saveSettings(); });
-                const viewAllPast = document.getElementById('viewAllPast'); if(viewAllPast) viewAllPast.addEventListener('click', function(){ window.location.href = 'past_workouts.html'; });
+                const viewAllPast = document.getElementById('viewAllPast'); if(viewAllPast) viewAllPast.addEventListener('click', function(){ window.location.href = '/pages/past_workouts.html'; });
 
                 // Ensure add button always navigates to add page, even if later code errors
                 const earlyAddBtn = document.getElementById('addWorkout');
@@ -159,12 +159,12 @@
                     earlyAddBtn.addEventListener('click', () => {
                         try {
                             if (document.startViewTransition) {
-                                document.startViewTransition(() => { window.location.href = 'addworkout.html'; }).catch(()=>{});
+                                document.startViewTransition(() => { window.location.href = '/pages/addworkout.html'; }).catch(()=>{});
                             } else {
-                                window.location.href = 'addworkout.html';
+                                window.location.href = '/pages/addworkout.html';
                             }
                         } catch (err) {
-                            window.location.href = 'addworkout.html';
+                            window.location.href = '/pages/addworkout.html';
                         }
                     });
                 }
@@ -359,12 +359,12 @@
                     addBtn.addEventListener('click', () => {
                         try {
                             if (document.startViewTransition) {
-                                document.startViewTransition(() => { window.location.href = 'addworkout.html'; }).catch(()=>{});
+                                document.startViewTransition(() => { window.location.href = '/pages/addworkout.html'; }).catch(()=>{});
                             } else {
-                                window.location.href = 'addworkout.html';
+                                window.location.href = '/pages/addworkout.html';
                             }
                         } catch (err) {
-                            window.location.href = 'addworkout.html';
+                            window.location.href = '/pages/addworkout.html';
                         }
                     });
                 }
@@ -429,8 +429,8 @@
                     } catch (e) { panel.style.transformOrigin = 'center center'; }
                     modal.classList.add('open');
                     // wire start/edit
-                    document.getElementById('modalStart').onclick = function(){ try{ sessionStorage.setItem('hc:currentWorkout', JSON.stringify(w)); }catch(e){} window.location.href = 'workout_session.html'; };
-                    document.getElementById('modalEdit').onclick = function(){ try{ sessionStorage.setItem('hc:selectedWorkout', JSON.stringify(w)); }catch(e){} window.location.href='addworkout.html'; };
+                    document.getElementById('modalStart').onclick = function(){ try{ sessionStorage.setItem('hc:currentWorkout', JSON.stringify(w)); }catch(e){} window.location.href = '/pages/workout_session.html'; };
+                    document.getElementById('modalEdit').onclick = function(){ try{ sessionStorage.setItem('hc:selectedWorkout', JSON.stringify(w)); }catch(e){} window.location.href='/pages/addworkout.html'; };
                     document.getElementById('modalClose').onclick = closeWorkoutModal;
                 }
                 function closeWorkoutModal(){ const modal=document.getElementById('workoutModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try { document.body.classList.remove('modal-open'); } catch(e){} }

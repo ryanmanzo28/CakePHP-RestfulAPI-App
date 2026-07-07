@@ -42,7 +42,7 @@
     <script>
     (function(){
       const token = localStorage.getItem('jwt') || '';
-      if(!token){ window.location.href = 'login.html'; return; }
+      if(!token){ window.location.href = '/pages/login.html'; return; }
 
       const FEED_CACHE_TTL_MS = 60000;
       let communityFeedCache = [];
@@ -56,7 +56,7 @@
       const feedScopeEl = document.getElementById('feedScope');
 
       if (usernameEl) usernameEl.textContent = localStorage.getItem('username') || '';
-      if (backDashBtn) backDashBtn.addEventListener('click', function(){ window.location.href='dashboard.html'; });
+      if (backDashBtn) backDashBtn.addEventListener('click', function(){ window.location.href='/pages/dashboard.html'; });
 
       async function loadCommunityFeed(forceRefresh){
         const useCache = !forceRefresh && communityFeedFetchedAt && (Date.now() - communityFeedFetchedAt < FEED_CACHE_TTL_MS);
