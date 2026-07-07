@@ -9,7 +9,7 @@
         <link rel="preload" href="/main.js" as="script">
         <link rel="stylesheet" href="../assets/main.css?v=4" />
     </head>
-    <body>
+    <body class="auth-page">
         <div class="login-wrapper">
             <main class="login-card" role="main" aria-labelledby="loginTitle">
                 <header class="card-header">
@@ -49,7 +49,7 @@
                 </form>
 
                 <div class="divider" aria-hidden="true"></div>
-                <p class="help">New here? <a href="/register.html">Create an account</a></p>
+                <p class="help">New here? <a href="/pages/register.html">Create an account</a></p>
             </main>
 
             <footer class="login-footer">© 2026 HydraCor</footer>
@@ -66,17 +66,27 @@
                     const email = document.getElementById('email').value.trim();
                     const password = document.getElementById('password').value;
                     try {
-                        // Compute client-side SHA-256 for local storage, but send the raw password
-                        // so the server can compute and try both sha256(email+password) and raw fallbacks.
-                        const hashed = await hashPassword(password + email.toLowerCase());
-                        const res = await fetch('/api/auth/login', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: email.toLowerCase(), password: password }),
-                        });
-                        const data = await res.json();
+                        const normalizedEmail = email.toLowerCase();
+                        // First try the hashed credential used by registration, then fall back to raw for legacy users.
+                        const hashed = await hashPassword(password + normalizedEmail);
+
+                        async function tryLogin(candidatePassword) {
+                            const response = await fetch('/api/auth/login', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: normalizedEmail, password: candidatePassword }),
+                            });
+                            const payload = await response.json().catch(() => ({}));
+                            return { response, payload };
+                        }
+
+                        let { response: res, payload: data } = await tryLogin(hashed);
                         if (!res.ok) {
-                            err.textContent = data.error || 'Login failed';
+                            ({ response: res, payload: data } = await tryLogin(password));
+                        }
+
+                        if (!res.ok) {
+                            err.textContent = data.error || 'Invalid credentials';
                             return;
                         }
 

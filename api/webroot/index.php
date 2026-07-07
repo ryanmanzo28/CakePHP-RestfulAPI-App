@@ -18,15 +18,6 @@ if (class_exists('\\Cake\\Http\\Server') && class_exists('\\App\\Application')) 
             require __DIR__ . '/../config/bootstrap.php';
         }
 
-        // Ensure routes are loaded so Cake can dispatch to our controllers
-        if (class_exists('\\Cake\\Routing\\Router')) {
-            // Initialize Router internal state before loading route definitions
-            \Cake\Routing\Router::reload();
-        }
-        if (file_exists(__DIR__ . '/../config/routes.php')) {
-            require __DIR__ . '/../config/routes.php';
-        }
-
         $app = new \App\Application(dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config');
         $server = new \Cake\Http\Server($app);
         $response = $server->run();

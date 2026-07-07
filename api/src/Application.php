@@ -14,13 +14,17 @@ if (class_exists('\\Cake\\Http\\BaseApplication')) {
         public function bootstrap(): void
         {
             parent::bootstrap();
+            $this->addPlugin('Migrations');
         }
 
         public function routes(\Cake\Routing\RouteBuilder $routes): void
         {
             $file = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'routes.php';
             if (file_exists($file)) {
-                require $file;
+                $builder = require $file;
+                if (is_callable($builder)) {
+                    $builder($routes);
+                }
             }
         }
 

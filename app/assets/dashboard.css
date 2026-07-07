@@ -1,0 +1,286 @@
+/* Dashboard-only stylesheet to override conflicting legacy rules */
+body.dashboard-page {
+  margin: 0;
+  color: #11203b;
+  background:
+    radial-gradient(1000px 450px at 8% -12%, rgba(93, 142, 255, 0.22), transparent 55%),
+    radial-gradient(900px 440px at 96% 10%, rgba(115, 96, 255, 0.18), transparent 52%),
+    linear-gradient(165deg, #eef3ff 0%, #e9efff 42%, #e5ebff 100%);
+}
+
+body.dashboard-page .dashboard-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 80;
+  background: rgba(15, 25, 65, 0.72);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(198, 214, 255, 0.22);
+}
+
+body.dashboard-page .dashboard-header-inner {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+body.dashboard-page .brand {
+  margin: 0;
+}
+
+body.dashboard-page .dashboard-title,
+body.dashboard-page .brand h1 {
+  margin: 0;
+  color: #f1f5ff;
+}
+
+body.dashboard-page .brand .tag {
+  color: rgba(222, 232, 255, 0.85);
+}
+
+body.dashboard-page .dashboard-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.dashboard-page .dashboard-actions .btn {
+  border: 1px solid rgba(206, 220, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f2f6ff;
+}
+
+body.dashboard-page .dashboard-content {
+  padding-top: 82px;
+}
+
+body.dashboard-page .dashboard-container.dashboard-redo {
+  width: calc(100vw - 28px);
+  max-width: 1680px;
+  margin: 10px auto 18px;
+  padding: 0;
+}
+
+body.dashboard-page .redo-hero {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 18px;
+  align-items: stretch;
+  border: 1px solid rgba(97, 124, 220, 0.17);
+  border-radius: 16px;
+  background: linear-gradient(132deg, rgba(255, 255, 255, 0.92), rgba(246, 250, 255, 0.9));
+  padding: 20px;
+  box-shadow: 0 16px 34px rgba(30, 46, 118, 0.11);
+}
+
+body.dashboard-page .redo-eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.72rem;
+  color: #5568b0;
+  font-weight: 700;
+}
+
+body.dashboard-page .redo-hero h2 {
+  margin: 4px 0 6px;
+  color: #1c2b5e;
+  font-size: clamp(1.45rem, 2.7vw, 2.1rem);
+}
+
+body.dashboard-page .redo-subtitle {
+  margin: 0;
+  color: #5c6794;
+  font-size: 1rem;
+  max-width: 68ch;
+}
+
+body.dashboard-page .redo-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body.dashboard-page .redo-stat-card {
+  border: 1px solid rgba(108, 131, 219, 0.16);
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+  text-align: center;
+}
+
+body.dashboard-page .redo-stat-card .stat-value {
+  font-size: 2rem;
+}
+
+body.dashboard-page .redo-toolbar {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(104, 126, 214, 0.14);
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+body.dashboard-page .redo-toolbar-actions {
+  margin-left: auto;
+  width: min(420px, 100%);
+}
+
+body.dashboard-page .redo-toolbar .search {
+  width: 100%;
+  min-width: 220px;
+  border-radius: 9px;
+  border: 1px solid rgba(27, 45, 114, 0.14);
+  padding: 11px 12px;
+}
+
+body.dashboard-page #error {
+  margin-top: 8px;
+}
+
+body.dashboard-page .redo-layout {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 16px;
+  align-items: start;
+}
+
+body.dashboard-page .redo-main,
+body.dashboard-page .redo-side-card {
+  border: 1px solid rgba(106, 127, 211, 0.14);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 14px 28px rgba(30, 45, 108, 0.09);
+  padding: 16px;
+}
+
+body.dashboard-page .redo-section-head h3 {
+  margin: 0;
+  color: #1c2b5e;
+}
+
+body.dashboard-page .workout-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 14px;
+}
+
+body.dashboard-page .workout-card {
+  border: 1px solid rgba(115, 135, 220, 0.16);
+  background: linear-gradient(180deg, #ffffff, #f7f9ff);
+  border-radius: 12px;
+  box-shadow: 0 12px 24px rgba(29, 45, 110, 0.09);
+  padding: 16px;
+  min-height: 164px;
+}
+
+body.dashboard-page .past-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+body.dashboard-page .past-card {
+  border-radius: 9px;
+  border: 1px solid rgba(115, 136, 220, 0.13);
+  background: #fff;
+  padding: 10px;
+  box-shadow: none;
+}
+
+body.dashboard-page #addWorkout {
+  position: fixed !important;
+  right: 20px !important;
+  bottom: 20px !important;
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  background: linear-gradient(135deg, #4261ff 0%, #4f46e5 58%, #3d37bb 100%);
+  box-shadow: 0 16px 34px rgba(56, 70, 182, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  z-index: 260;
+  font-size: 1.78rem;
+  line-height: 1;
+  color: #fff;
+}
+
+body.dashboard-page #addWorkout:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+body.dashboard-page #addWorkout:active {
+  transform: translateY(0) scale(0.96);
+}
+
+@media (max-width: 1040px) {
+  body.dashboard-page .redo-hero {
+    grid-template-columns: 1fr;
+  }
+
+  body.dashboard-page .redo-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 1500px) {
+  body.dashboard-page .redo-layout {
+    grid-template-columns: minmax(0, 1fr) 390px;
+  }
+
+  body.dashboard-page .workout-list {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  body.dashboard-page .dashboard-content {
+    padding-top: 76px;
+  }
+
+  body.dashboard-page .dashboard-header-inner {
+    padding: 10px;
+    flex-wrap: wrap;
+  }
+
+  body.dashboard-page .dashboard-actions {
+    width: 100%;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  body.dashboard-page .dashboard-container.dashboard-redo {
+    width: calc(100vw - 16px);
+  }
+
+  body.dashboard-page .redo-stats {
+    grid-template-columns: 1fr;
+  }
+
+  body.dashboard-page .redo-toolbar {
+    flex-wrap: wrap;
+  }
+
+  body.dashboard-page .redo-toolbar-actions {
+    width: 100%;
+  }
+
+  body.dashboard-page #addWorkout {
+    right: 12px !important;
+    bottom: 12px !important;
+    width: 50px;
+    min-width: 50px;
+    height: 50px;
+    font-size: 1.45rem;
+  }
+}

@@ -33,10 +33,14 @@ RUN if [ -f /var/www/html/api/composer.json ]; then \
 # Copy the rest of the application code
 COPY . .
 
+# Container startup script runs migrations and then starts php-fpm
+RUN chmod +x /var/www/html/docker/entrypoint.sh
+
 # Ensure proper permissions for PHP-FPM user
 RUN chown -R www-data:www-data /var/www/html \
  && find /var/www/html -type d -exec chmod 755 {} \; \
  && find /var/www/html -type f -exec chmod 644 {} \;
 
 EXPOSE 9000
+ENTRYPOINT ["/var/www/html/docker/entrypoint.sh"]
 CMD ["php-fpm"]

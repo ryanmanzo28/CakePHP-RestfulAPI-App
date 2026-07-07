@@ -8,6 +8,47 @@ if (!defined('APP')) {
     define('APP', dirname(__DIR__) . DIRECTORY_SEPARATOR);
 }
 
+
+if (!defined('DS')) {
+    define('DS', DIRECTORY_SEPARATOR);
+}
+
+if (!defined('ROOT')) {
+    define('ROOT', dirname(__DIR__));
+}
+
+if (!defined('CONFIG')) {
+    define('CONFIG', ROOT . DS . 'config' . DS);
+}
+
+if (!defined('WWW_ROOT')) {
+    define('WWW_ROOT', ROOT . DS . 'webroot' . DS);
+}
+
+if (!defined('TMP')) {
+    define('TMP', sys_get_temp_dir() . DS . 'hydracor' . DS);
+}
+
+if (!defined('LOGS')) {
+    define('LOGS', TMP . 'logs' . DS);
+}
+
+if (!defined('CACHE')) {
+    define('CACHE', TMP . 'cache' . DS);
+}
+
+if (!is_dir(TMP)) {
+    @mkdir(TMP, 0775, true);
+}
+
+if (!is_dir(LOGS)) {
+    @mkdir(LOGS, 0775, true);
+}
+
+if (!is_dir(CACHE)) {
+    @mkdir(CACHE, 0775, true);
+}
+
 // Ensure a default application encoding is configured so Cake's Response
 // constructor has a valid charset value when bootstrapping.
 if (class_exists('\Cake\Core\Configure')) {
@@ -62,6 +103,10 @@ if (class_exists('\Cake\Core\Configure')) {
             ],
         ]);
     }
+}
+
+if (class_exists('\Cake\Routing\Router')) {
+    \Cake\Routing\Router::reload();
 }
 // Enable debug mode during local development to surface errors
 if (class_exists('\Cake\Core\Configure')) {

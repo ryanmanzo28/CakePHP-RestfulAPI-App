@@ -6,7 +6,8 @@
     "firebase/php-jwt": "^6.0",
     "psr/http-message": "^1.0",
     "psr/http-server-handler": "^1.0",
-    "cakephp/cakephp": "^5.0"
+    "cakephp/cakephp": "^5.0",
+    "cakephp/migrations": "^4.0"
   },
   "autoload": {
     "psr-4": {

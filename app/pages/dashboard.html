@@ -6,8 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>HydraCor Dashboard</title>
         <link rel="stylesheet" href="../assets/main.css?v=4" />
+        <link rel="stylesheet" href="../assets/dashboard.css?v=1" />
     </head>
-    <body>
+    <body class="dashboard-page">
         <header class="dashboard-header">
             <div class="dashboard-header-inner">
                 <div class="brand">
@@ -19,7 +20,7 @@
                     </div>
                     <div>
                         <h1 class="dashboard-title">HydraCor</h1>
-                        <div class="tag">Workout Tracker</div>
+                        <div class="tag">Command Center</div>
                     </div>
                 </div>
 
@@ -32,54 +33,58 @@
         </header>
 
         <main class="dashboard-content">
-            <div class="dashboard-container">
-                <section class="dashboard-overview">
-                    <div class="row-between">
-                        <h2>Your Workouts</h2>
-                        <div style="display:flex;gap:8px;align-items:center">
-                            <div class="small muted">Browse your saved workouts</div>
+            <div class="dashboard-container dashboard-redo">
+                <section class="redo-hero">
+                    <div>
+                        <p class="redo-eyebrow">Dashboard</p>
+                        <h2>Training Overview</h2>
+                        <p class="redo-subtitle">Everything you need to review past sessions and start the next workout fast.</p>
+                    </div>
+                    <div class="redo-stats">
+                        <div class="redo-stat-card">
+                            <div class="stat-value" id="statTotal">0</div>
+                            <div class="stat-label">Total</div>
+                        </div>
+                        <div class="redo-stat-card">
+                            <div class="stat-value" id="statRecent">0</div>
+                            <div class="stat-label">Last 7d</div>
+                        </div>
+                        <div class="redo-stat-card">
+                            <div class="stat-value" id="statAvg">—</div>
+                            <div class="stat-label">Avg Duration</div>
                         </div>
                     </div>
-                    <div id="error" role="alert" class="error"></div>
                 </section>
 
-                <!-- stats will be rendered inside the main column for a cleaner two-column layout -->
+                <section class="redo-toolbar">
+                    <div class="small muted" id="workoutCount">0 workouts</div>
+                    <div class="redo-toolbar-actions">
+                        <input id="workoutSearch" class="search" placeholder="Search workouts" />
+                    </div>
+                </section>
 
-                <div class="dashboard-columns">
-                    <section class="main-column">
-                        <div class="main-controls" style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px">
-                            <div style="display:flex;flex-direction:column">
-                                <div style="display:flex;align-items:center;gap:12px">
-                                    <div class="stat-card" style="padding:10px 12px;min-width:120px">
-                                        <div class="stat-value" id="statTotal">0</div>
-                                        <div class="stat-label">Total</div>
-                                    </div>
-                                    <div class="stat-card" style="padding:10px 12px;min-width:120px">
-                                        <div class="stat-value" id="statRecent">0</div>
-                                        <div class="stat-label">7d</div>
-                                    </div>
-                                    <div class="stat-card" style="padding:10px 12px;min-width:120px">
-                                        <div class="stat-value" id="statAvg">—</div>
-                                        <div class="stat-label">Avg</div>
-                                    </div>
-                                </div>
-                                <div class="small muted" id="workoutCount" style="margin-top:8px">0 workouts</div>
-                            </div>
-                            <div style="display:flex;gap:8px;align-items:center">
-                                <input id="workoutSearch" class="search" placeholder="Search workouts" style="padding:8px 10px;border-radius:8px;border:1px solid rgba(20,20,60,0.06);width:240px" />
-                                <button id="addWorkout" class="btn primary">Add</button>
-                            </div>
+                <div id="error" role="alert" class="error"></div>
+
+                <section class="redo-layout">
+                    <div class="redo-main">
+                        <div class="redo-section-head row-between">
+                            <h3>Your Workouts</h3>
+                            <span class="small muted">Click any card to view details</span>
                         </div>
-
                         <div class="dashboard-grid">
                             <div id="workoutList" class="workout-list"></div>
                         </div>
-                    </section>
-                    <aside class="past-column">
-                        <h3 class="small">Past Workouts</h3>
-                        <div id="pastWorkouts" class="past-list"></div>
+                    </div>
+
+                    <aside class="redo-side">
+                        <div class="redo-side-card">
+                            <h3 class="small">Recent Sessions</h3>
+                            <div id="pastWorkouts" class="past-list"></div>
+                        </div>
                     </aside>
-                </div>
+                </section>
+
+                <button id="addWorkout" class="btn primary" aria-label="Add Workout">+</button>
             </div>
         </main>
 

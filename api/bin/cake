@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php
+declare(strict_types=1);
+
+use App\Application;
+use Cake\Console\CommandRunner;
+use Cake\Routing\Router;
+
+$root = dirname(__DIR__);
+require $root . '/vendor/autoload.php';
+require $root . '/config/bootstrap_cli.php';
+
+Router::reload();
+
+$runner = new CommandRunner(new Application($root . '/config'), 'cake');
+exit($runner->run($argv));
