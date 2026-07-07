@@ -72,7 +72,7 @@ class AuthController extends AppController
                 ->withType('application/json')
                 ->withStringBody(json_encode(['token' => $token]));
         } catch (\Throwable $e) {
-            return $this->response->withStatus(500)->withStringBody(json_encode(['error' => $e->getMessage()]));
+            return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Internal server error']));
         }
     }
 
@@ -98,7 +98,7 @@ class AuthController extends AppController
             $payload = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secret, 'HS256'));
             return $this->response->withType('application/json')->withStringBody(json_encode(['valid' => true, 'payload' => $payload]));
         } catch (\Throwable $e) {
-            return $this->response->withStatus(401)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
+            return $this->response->withStatus(401)->withType('application/json')->withStringBody(json_encode(['error' => 'Invalid token']));
         }
     }
 
@@ -111,6 +111,7 @@ class AuthController extends AppController
         $data = $this->request->getData();
         $username = isset($data['username']) ? trim((string)$data['username']) : null;
         $email = isset($data['email']) ? trim((string)$data['email']) : null;
+        $emailNorm = $email ? strtolower($email) : null;
         $password = isset($data['password']) ? (string)$data['password'] : null;
 
         if (!$username || !$email || !$password) {
@@ -119,7 +120,7 @@ class AuthController extends AppController
 
         try {
             $users = $this->fetchTable('Users');
-            $existing = $users->find()->where(['email' => $email])->first();
+            $existing = $users->find()->where(['email' => $emailNorm])->first();
             if ($existing) {
                 return $this->response->withStatus(409)->withType('application/json')->withStringBody(json_encode(['error' => 'Email already registered']));
             }
@@ -129,7 +130,7 @@ class AuthController extends AppController
 
             $user = $users->newEntity([]);
             $user->username = $username;
-            $user->email = strtolower($email);
+            $user->email = $emailNorm;
             $user->password = $hashed;
 
             if ($users->save($user)) {
@@ -138,7 +139,7 @@ class AuthController extends AppController
 
             return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Failed to save user']));
         } catch (\Throwable $e) {
-            return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
+            return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Internal server error']));
         }
     }
 }

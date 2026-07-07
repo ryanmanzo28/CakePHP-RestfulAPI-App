@@ -6,6 +6,10 @@ $builder = Router::createRouteBuilder('/');
 $builder->scope('/api', function (RouteBuilder $routes) {
     $routes->connect('/workouts', 'Api/Workouts::index');
     $routes->connect('/workouts', ['controller' => 'Api/Workouts', 'action' => 'create', '_method' => 'POST']);
+    $routes->connect('/workouts/:id', ['controller' => 'Api/Workouts', 'action' => 'update', '_method' => 'PUT'], [
+        'id' => '\\d+',
+        'pass' => ['id']
+    ]);
     $routes->connect('/workouts/:id', ['controller' => 'Api/Workouts', 'action' => 'delete', '_method' => 'DELETE'], [
         'id' => '\\d+',
         'pass' => ['id']

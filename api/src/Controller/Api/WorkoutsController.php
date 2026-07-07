@@ -31,26 +31,30 @@ class WorkoutsController extends AppController
                 return $this->response->withStatus(401)->withType('application/json')
                     ->withStringBody(json_encode(['error' => 'Invalid token payload']));
             }
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Token expired']));
+        } catch (\Throwable $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid token']));
+        }
 
+        try {
             // Return workouts belonging to authenticated user
             $workoutsTable = $this->fetchTable('Workouts');
             $query = $workoutsTable->find()->where(['user_id' => $userId]);
             $results = $query->all()->toArray();
             return $this->response->withType('application/json')
                 ->withStringBody(json_encode($results));
-        } catch (\Firebase\JWT\ExpiredException $e) {
-            return $this->response->withStatus(401)->withType('application/json')
-                ->withStringBody(json_encode(['error' => 'Token expired']));
         } catch (\Throwable $e) {
             // PDO fallback by user id
             try {
-                $userId = isset($userId) ? (int)$userId : 0;
                 $data = $this->pdoQueryWorkoutsByUserId($userId);
                 return $this->response->withType('application/json')
                     ->withStringBody(json_encode($data));
             } catch (\Throwable $_) {
                 return $this->response->withStatus(500)->withType('application/json')
-                    ->withStringBody(json_encode(['error' => $e->getMessage()]));
+                    ->withStringBody(json_encode(['error' => 'Failed to load workouts']));
             }
         }
     }
@@ -79,14 +83,22 @@ class WorkoutsController extends AppController
                 return $this->response->withStatus(401)->withType('application/json')
                     ->withStringBody(json_encode(['error' => 'Invalid token payload']));
             }
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Token expired']));
+        } catch (\Throwable $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid token']));
+        }
 
-            $data = $this->request->getData();
-            $title = isset($data['title']) ? trim((string)$data['title']) : '';
-            if (!$title) {
-                return $this->response->withStatus(400)->withType('application/json')
-                    ->withStringBody(json_encode(['error' => 'Missing title']));
-            }
+        $data = $this->request->getData();
+        $title = isset($data['title']) ? trim((string)$data['title']) : '';
+        if (!$title) {
+            return $this->response->withStatus(400)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Missing title']));
+        }
 
+        try {
             // Use Cake ORM when available
             $workouts = $this->fetchTable('Workouts');
             $entity = $workouts->newEntity([]);
@@ -157,7 +169,155 @@ class WorkoutsController extends AppController
                 }
                 return $this->response->withStatus(201)->withType('application/json')->withStringBody(json_encode($result));
             } catch (\Throwable $_) {
-                return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
+                return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Failed to create workout']));
+            }
+        }
+    }
+
+    /**
+     * Update a workout owned by the authenticated user.
+     * URL: PUT /api/workouts/:id
+     */
+    public function update($id = null)
+    {
+        $id = (int)$id;
+        if ($id <= 0) {
+            return $this->response->withStatus(400)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid id']));
+        }
+
+        $header = $this->request->getHeaderLine('Authorization');
+        $token = null;
+        if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $m)) {
+            $token = $m[1];
+        }
+        if (!$token) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Missing or invalid Authorization header']));
+        }
+
+        try {
+            $secret = getenv('JWT_SECRET') ?: 'change_me';
+            $payload = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secret, 'HS256'));
+            $userId = (int)($payload->sub ?? 0);
+            if ($userId <= 0) {
+                return $this->response->withStatus(401)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Invalid token payload']));
+            }
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Token expired']));
+        } catch (\Throwable $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid token']));
+        }
+
+        $data = $this->request->getData();
+
+        try {
+            $workouts = $this->fetchTable('Workouts');
+            try {
+                $entity = $workouts->get($id);
+            } catch (\Throwable $e) {
+                return $this->response->withStatus(404)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Not found']));
+            }
+
+            if ((int)($entity->user_id ?? 0) !== $userId) {
+                return $this->response->withStatus(403)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Forbidden']));
+            }
+
+            if (array_key_exists('title', $data)) {
+                $title = trim((string)$data['title']);
+                if ($title === '') {
+                    return $this->response->withStatus(400)->withType('application/json')
+                        ->withStringBody(json_encode(['error' => 'Title cannot be empty']));
+                }
+                $entity->title = $title;
+            }
+            if (array_key_exists('notes', $data)) {
+                $entity->notes = $data['notes'] !== null ? (string)$data['notes'] : null;
+            }
+            if (array_key_exists('date', $data)) {
+                $entity->date = $data['date'] ?: null;
+            }
+            if (array_key_exists('duration', $data)) {
+                $entity->duration = $data['duration'] !== null ? (string)$data['duration'] : null;
+            }
+            if (array_key_exists('data', $data)) {
+                $entity->data = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
+            }
+
+            if ($workouts->save($entity)) {
+                return $this->response->withType('application/json')
+                    ->withStringBody(json_encode($entity));
+            }
+
+            throw new \RuntimeException('Failed to save workout update');
+        } catch (\Throwable $e) {
+            // Fallback to PDO update
+            try {
+                $host = getenv('DB_HOST') ?: 'localhost';
+                $db = getenv('DB_NAME') ?: 'cakephp';
+                $user = getenv('DB_USER') ?: 'root';
+                $pass = getenv('DB_PASS') ?: '';
+                $charset = 'utf8mb4';
+                $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+                $pdo = new \PDO($dsn, $user, $pass, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+
+                // Ensure workout exists and belongs to user
+                $check = $pdo->prepare('SELECT id FROM workouts WHERE id = :id AND user_id = :uid');
+                $check->execute(['id' => $id, 'uid' => $userId]);
+                if (!$check->fetchColumn()) {
+                    return $this->response->withStatus(404)->withType('application/json')
+                        ->withStringBody(json_encode(['error' => 'Not found']));
+                }
+
+                $set = [];
+                $params = ['id' => $id, 'uid' => $userId];
+                if (array_key_exists('title', $data)) {
+                    $title = trim((string)$data['title']);
+                    if ($title === '') {
+                        return $this->response->withStatus(400)->withType('application/json')
+                            ->withStringBody(json_encode(['error' => 'Title cannot be empty']));
+                    }
+                    $set[] = 'title = :title';
+                    $params['title'] = $title;
+                }
+                if (array_key_exists('notes', $data)) {
+                    $set[] = 'notes = :notes';
+                    $params['notes'] = $data['notes'] !== null ? (string)$data['notes'] : null;
+                }
+                if (array_key_exists('date', $data)) {
+                    $set[] = '`date` = :date';
+                    $params['date'] = $data['date'] ?: null;
+                }
+                if (array_key_exists('duration', $data)) {
+                    $set[] = 'duration = :duration';
+                    $params['duration'] = $data['duration'] !== null ? (string)$data['duration'] : null;
+                }
+                if (array_key_exists('data', $data)) {
+                    $set[] = 'data = :data';
+                    $params['data'] = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
+                }
+                if (!$set) {
+                    return $this->response->withStatus(400)->withType('application/json')
+                        ->withStringBody(json_encode(['error' => 'No fields provided to update']));
+                }
+                $set[] = 'modified = NOW()';
+
+                $sql = 'UPDATE workouts SET ' . implode(', ', $set) . ' WHERE id = :id AND user_id = :uid';
+                $stmt = $pdo->prepare($sql);
+                $stmt->execute($params);
+
+                $fetch = $pdo->prepare('SELECT * FROM workouts WHERE id = :id AND user_id = :uid');
+                $fetch->execute(['id' => $id, 'uid' => $userId]);
+                $row = $fetch->fetch(\PDO::FETCH_ASSOC) ?: ['id' => $id];
+                return $this->response->withType('application/json')->withStringBody(json_encode($row));
+            } catch (\Throwable $_) {
+                return $this->response->withStatus(500)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Failed to update workout']));
             }
         }
     }
@@ -192,7 +352,15 @@ class WorkoutsController extends AppController
                 return $this->response->withStatus(401)->withType('application/json')
                     ->withStringBody(json_encode(['error' => 'Invalid token payload']));
             }
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Token expired']));
+        } catch (\Throwable $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid token']));
+        }
 
+        try {
             $workouts = $this->fetchTable('Workouts');
             try {
                 $entity = $workouts->get($id);
@@ -229,7 +397,7 @@ class WorkoutsController extends AppController
                 }
                 return $this->response->withStatus(404)->withType('application/json')->withStringBody(json_encode(['error' => 'Not found']));
             } catch (\Throwable $_) {
-                return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => $e->getMessage()]));
+                return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Failed to delete workout']));
             }
         }
     }
@@ -253,7 +421,7 @@ class WorkoutsController extends AppController
             $stmt->execute(['hash' => $hash]);
             return $stmt->fetchAll();
         } catch (\PDOException $e) {
-            return ['error' => $e->getMessage()];
+            return [];
         }
     }
 
@@ -276,7 +444,7 @@ class WorkoutsController extends AppController
             $stmt->execute(['uid' => $userId]);
             return $stmt->fetchAll();
         } catch (\PDOException $e) {
-            return ['error' => $e->getMessage()];
+            return [];
         }
     }
 }
