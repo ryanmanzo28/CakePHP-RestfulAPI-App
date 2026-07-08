@@ -1,39 +1,38 @@
 <?php
 declare(strict_types=1);
-// API front controller - boots CakePHP when available, otherwise provides a minimal message.
+
+use App\Application;
+use Cake\Http\Server;
+
 chdir(dirname(__DIR__));
 
-// Load Composer autoload if present
-if (file_exists(__DIR__ . '/../vendor/autoload.php')) {
-    require __DIR__ . '/../vendor/autoload.php';
+$autoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (!file_exists($autoload)) {
+    http_response_code(500);
+    header('Content-Type: text/plain; charset=UTF-8');
+    echo "Composer autoload file not found. Run composer install in api/.\n";
+
+    return;
 }
 
-// No lightweight fallback here — let CakePHP handle auth routes.
+require $autoload;
 
-// If Cake's HTTP server and Application are available, use them to handle the request.
-if (class_exists('\\Cake\\Http\\Server') && class_exists('\\App\\Application')) {
-    // Ensure config is loaded and run the Cake server using a PSR-7 request/response flow
-    try {
-        if (file_exists(__DIR__ . '/../config/bootstrap.php')) {
-            require __DIR__ . '/../config/bootstrap.php';
-        }
+if (PHP_SAPI === 'cli') {
+    fwrite(STDOUT, "HydraCor API front controller is intended for HTTP requests.\n");
 
-        $app = new \App\Application(dirname(__DIR__) . DIRECTORY_SEPARATOR . 'config');
-        $server = new \Cake\Http\Server($app);
-        $response = $server->run();
-        if ($response instanceof \Psr\Http\Message\ResponseInterface) {
-            $server->emit($response);
-        }
-        return;
-    } catch (\Throwable $e) {
-        http_response_code(500);
-        header('Content-Type: application/json');
-        echo json_encode(['error' => 'Application bootstrap failed', 'message' => $e->getMessage()]);
-        return;
-    }
+    return;
 }
 
-// Fallback response when Cake isn't installed or available
-header('Content-Type: text/plain');
-echo "Hydracor API minimal front controller — CakePHP not installed.\n";
-return;
+require dirname(__DIR__) . '/config/bootstrap.php';
+
+try {
+    $server = new Server(new Application(dirname(__DIR__) . '/config'));
+    $server->emit($server->run());
+} catch (\Throwable $e) {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=UTF-8');
+    echo json_encode([
+        'error' => 'Application bootstrap failed',
+        'message' => $e->getMessage(),
+    ]);
+}
