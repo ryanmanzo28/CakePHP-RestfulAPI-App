@@ -4,6 +4,7 @@ namespace App\Model\Entity;
 
 use Cake\ORM\Entity;
 
+
 class User extends Entity
 {
     protected array $_accessible = [
@@ -19,3 +20,7 @@ class User extends Entity
         'password',
     ];
 }
+
+
+
+

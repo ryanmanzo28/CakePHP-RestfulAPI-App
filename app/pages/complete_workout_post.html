@@ -54,6 +54,10 @@
                 </select>
               </div>
               <div class="field" style="grid-column:1 / -1">
+                <label class="cw-label" for="postDescription">Workout Description</label>
+                <input id="postDescription" class="cw-input" placeholder="Quick description of this workout post">
+              </div>
+              <div class="field" style="grid-column:1 / -1">
                 <label class="cw-label" for="postNotes">Notes</label>
                 <textarea id="postNotes" class="cw-input" rows="4" placeholder="How did it feel? Any wins or struggles?"></textarea>
               </div>
@@ -103,6 +107,7 @@
         const postTitle = document.getElementById('postTitle');
         const activityType = document.getElementById('activityType');
         const intensity = document.getElementById('intensity');
+        const postDescription = document.getElementById('postDescription');
         const postNotes = document.getElementById('postNotes');
         const postPhoto = document.getElementById('postPhoto');
         const formError = document.getElementById('formError');
@@ -122,6 +127,7 @@
         postTitle.value = post.title || '';
         activityType.value = post.activityType || '';
         intensity.value = post.intensity || '';
+        postDescription.value = post.description || '';
         postNotes.value = post.notes || '';
         renderPhoto(post.photoDataUrl || '');
 
@@ -170,6 +176,7 @@
             title,
             activityType: activityType.value,
             intensity: intensity.value,
+            description: postDescription.value,
             notes: postNotes.value
           });
 

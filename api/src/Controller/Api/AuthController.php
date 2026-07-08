@@ -2,9 +2,11 @@
 namespace App\Controller\Api;
 
 use App\Controller\AppController;
+use Cake\Validation\Validator;
 
 class AuthController extends AppController
 {
+    
     public function initialize(): void
     {
         parent::initialize();
@@ -28,6 +30,7 @@ class AuthController extends AppController
         try {
                 $users = $this->fetchTable('Users');
                 // lookup by normalized (lowercased, trimmed) email to match registration normalization
+                
                 $user = $users->find()->where(['email' => $emailNorm])->first();
             if (!$user) {
                 return $this->response->withStatus(401)->withStringBody(json_encode(['error' => 'Invalid credentials']));
@@ -55,6 +58,17 @@ class AuthController extends AppController
                 if (password_verify($cand, $user->password)) {
                     $authenticated = true;
                     break;
+                }
+
+                // Legacy compatibility: some earlier registrations stored
+                // "<client_sha>$<bcrypt(client_sha)>" in the password column.
+                if (is_string($user->password) && str_contains($user->password, '$')) {
+                    $parts = explode('$', $user->password, 2);
+                    $legacyHash = $parts[1] ?? '';
+                    if ($legacyHash && password_verify($cand, $legacyHash)) {
+                        $authenticated = true;
+                        break;
+                    }
                 }
             }
 
@@ -109,37 +123,83 @@ class AuthController extends AppController
     public function register()
     {
         $data = $this->request->getData();
-        $username = isset($data['username']) ? trim((string)$data['username']) : null;
-        $email = isset($data['email']) ? trim((string)$data['email']) : null;
-        $emailNorm = $email ? strtolower($email) : null;
-        $password = isset($data['password']) ? (string)$data['password'] : null;
 
-        if (!$username || !$email || !$password) {
-            return $this->response->withStatus(400)->withType('application/json')->withStringBody(json_encode(['error' => 'Missing fields']));
+        $errors = $this->validateRegistrationData($data);
+        if ($errors) {
+            return $this->response->withStatus(400)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid registration data', 'details' => $errors]));
         }
+
+        $email = strtolower(trim((string)($data['email'] ?? '')));
+        $username = trim((string)($data['username'] ?? ''));
+        $passwordHex = strtolower(trim((string)($data['password'] ?? '')));
 
         try {
             $users = $this->fetchTable('Users');
-            $existing = $users->find()->where(['email' => $emailNorm])->first();
+            $existing = $users->find()->where(['email' => $email])->first();
             if ($existing) {
                 return $this->response->withStatus(409)->withType('application/json')->withStringBody(json_encode(['error' => 'Email already registered']));
             }
 
-            // Server stores bcrypt of the client-provided sha hex
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
+            // Server stores bcrypt of the client-provided sha256 hex.
+            $hashed = password_hash($passwordHex, PASSWORD_DEFAULT);
+            if ($hashed === false) {
+                throw new \RuntimeException('Failed to hash password');
+            }
 
-            $user = $users->newEntity([]);
-            $user->username = $username;
-            $user->email = $emailNorm;
-            $user->password = $hashed;
+            $user = $users->newEntity([
+                'username' => $username,
+                'email' => $email,
+                'password' => $hashed,
+            ]);
 
             if ($users->save($user)) {
                 return $this->response->withStatus(201)->withType('application/json')->withStringBody(json_encode(['message' => 'User created']));
             }
 
-            return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Failed to save user']));
+            return $this->response->withStatus(500)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Failed to save user', 'details' => $user->getErrors()]));
         } catch (\Throwable $e) {
             return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Internal server error']));
         }
     }
+
+    protected function validateRegistrationData($data): array
+    {
+        if (!is_array($data)) {
+            return ['request' => 'Invalid request body'];
+        }
+
+        $normalized = [
+            'username' => trim((string)($data['username'] ?? '')),
+            'email' => strtolower(trim((string)($data['email'] ?? ''))),
+            'password' => strtolower(trim((string)($data['password'] ?? ''))),
+        ];
+
+        $validator = new Validator();
+        $validator
+            ->requirePresence('username', 'create', 'Username is required')
+            ->notEmptyString('username', 'Username is required')
+            ->add('username', 'format', [
+                'rule' => static function ($value) {
+                    return is_string($value) && preg_match('/^[A-Za-z0-9_]{3,20}$/', $value) === 1;
+                },
+                'message' => 'Username must be 3-20 characters and use only letters, numbers, or underscores',
+            ])
+            ->requirePresence('email', 'create', 'Email is required')
+            ->notEmptyString('email', 'Email is required')
+            ->email('email', false, 'Email is invalid')
+            ->requirePresence('password', 'create', 'Password hash is required')
+            ->notEmptyString('password', 'Password hash is required')
+            ->add('password', 'sha256hex', [
+                'rule' => static function ($value) {
+                    return is_string($value) && preg_match('/^[a-f0-9]{64}$/', $value) === 1;
+                },
+                'message' => 'Password must be a SHA-256 hex string',
+            ]);
+
+        return $validator->validate($normalized);
+    }
 }
+
+

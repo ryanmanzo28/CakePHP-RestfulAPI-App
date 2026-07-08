@@ -700,7 +700,10 @@ body .cw-inline-duration-input{ padding:6px 8px;border-radius:8px;border:1px sol
 
 /* Dashboard layout aligned with shared app cards and form controls */
 body.dashboard-page {
+  display: block;
+  --dashboard-top-offset: 84px;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 body.dashboard-page .dashboard-header {
@@ -743,13 +746,16 @@ body.dashboard-page .dashboard-actions .btn:hover {
 }
 
 body.dashboard-page .dashboard-content {
-  padding-top: 84px;
+  padding-top: var(--dashboard-top-offset);
+  min-height: calc(100vh - var(--dashboard-top-offset));
+  min-height: calc(100dvh - var(--dashboard-top-offset));
 }
 
 body.dashboard-page .dashboard-container.dashboard-shell {
   max-width: 1100px;
   margin: 22px auto;
   padding: 0 18px;
+  min-height: 100%;
 }
 
 body.dashboard-page .dashboard-shell {
@@ -1079,6 +1085,24 @@ body.dashboard-page .feed-owner {
   color: #202343;
 }
 
+body.dashboard-page .feed-profile-trigger {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+body.dashboard-page .feed-owner.feed-profile-trigger {
+  text-decoration: underline;
+  text-decoration-color: rgba(32, 35, 67, 0.35);
+  text-underline-offset: 3px;
+}
+
+body.dashboard-page .feed-owner.feed-profile-trigger:hover {
+  color: #1f4fd1;
+}
+
 body.dashboard-page .feed-source {
   border-radius: 999px;
   padding: 2px 8px;
@@ -1120,6 +1144,42 @@ body.dashboard-page .feed-notes {
   background: rgba(236, 240, 255, 0.58);
   border: 1px solid rgba(31, 51, 120, 0.08);
   color: #2f3761;
+}
+
+body.dashboard-page .feed-description {
+  margin-top: 8px;
+  color: #303a67;
+  font-size: 0.95rem;
+}
+
+body.dashboard-page .profile-modal-panel {
+  max-width: 680px;
+}
+
+body.dashboard-page .profile-post-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(56vh, 520px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
+body.dashboard-page .profile-post-item {
+  border: 1px solid rgba(22, 30, 80, 0.08);
+  border-radius: 10px;
+  background: #f8faff;
+  padding: 10px;
+}
+
+body.dashboard-page .profile-post-title {
+  font-weight: 700;
+  color: #1f2645;
+  margin-bottom: 3px;
+}
+
+body.dashboard-page .profile-post-desc {
+  margin-top: 6px;
+  color: #3f4a73;
 }
 
 body.dashboard-page .feed-card.empty {
@@ -1320,7 +1380,8 @@ body.dashboard-page .workout-card {
   }
 
   body.dashboard-page .dashboard-content {
-    padding-top: 78px;
+    --dashboard-top-offset: 78px;
+    padding-top: var(--dashboard-top-offset);
   }
 
   body.dashboard-page .dashboard-container.dashboard-shell {

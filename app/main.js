@@ -47,6 +47,63 @@ const WORKOUTS_CACHE_TTL_MS = 30000;
 let workoutsCacheData = null;
 let workoutsCacheAt = 0;
 
+const APP_SETTINGS_KEY = 'hc:settings';
+const DEFAULT_APP_SETTINGS = Object.freeze({
+    weightUnit: 'lb',
+});
+
+function normalizeWeightUnit(unit) {
+    return unit === 'kg' ? 'kg' : 'lb';
+}
+
+function getAppSettings() {
+    const fallback = Object.assign({}, DEFAULT_APP_SETTINGS);
+    try {
+        const raw = localStorage.getItem(APP_SETTINGS_KEY);
+        const parsed = raw ? JSON.parse(raw) : {};
+        const merged = Object.assign({}, fallback, parsed || {});
+        merged.weightUnit = normalizeWeightUnit(merged.weightUnit);
+
+        // Backward compatibility: migrate old standalone weight key if present.
+        const legacyWeightUnit = localStorage.getItem('hc:weightUnit');
+        if (legacyWeightUnit && !raw) {
+            merged.weightUnit = normalizeWeightUnit(legacyWeightUnit);
+            localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(merged));
+        }
+
+        // Keep legacy key in sync while older page code may still read it.
+        localStorage.setItem('hc:weightUnit', merged.weightUnit);
+        return merged;
+    } catch (e) {
+        return fallback;
+    }
+}
+
+function setAppSettings(partialSettings = {}) {
+    const next = Object.assign({}, getAppSettings(), partialSettings || {});
+    next.weightUnit = normalizeWeightUnit(next.weightUnit);
+    try {
+        localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(next));
+        localStorage.setItem('hc:weightUnit', next.weightUnit);
+    } catch (e) {
+        // ignore storage failures; callers still get normalized return value
+    }
+    try {
+        window.dispatchEvent(new CustomEvent('hc:settingsChanged', { detail: next }));
+    } catch (e) {
+        // ignore event dispatch errors
+    }
+    return next;
+}
+
+function getWeightUnit() {
+    return getAppSettings().weightUnit;
+}
+
+function setWeightUnit(unit) {
+    return setAppSettings({ weightUnit: unit });
+}
+
 function invalidateWorkoutsCache() {
     workoutsCacheData = null;
     workoutsCacheAt = 0;
@@ -186,8 +243,8 @@ async function createAccount(username, email, password) {
 }
 
 /**
- * Add a new workout via the API. Falls back to returning a local object if API not available.
- * Returns the created workout object.
+ * Add a new workout via the API.
+ * Returns the created workout object and throws on failure.
  */
 async function addWorkout({ title, date, duration, notes, type, sets, exercises, distance, weightUnit } = {}) {
     const token = localStorage.getItem('jwt') || '';
@@ -237,13 +294,27 @@ async function addWorkout({ title, date, duration, notes, type, sets, exercises,
             throw new Error(msg);
         }
 
-        const created = await res.json().catch(() => null);
+        const createdRaw = await res.json().catch(() => null);
+        const created = (function(raw){
+            if (!raw) return null;
+            if (Array.isArray(raw)) {
+                if (raw.length === 1 && raw[0] && typeof raw[0] === 'object') return raw[0];
+                return null;
+            }
+            if (typeof raw !== 'object') return null;
+            if (raw.id || raw._id) return raw;
+            if (raw.workout && typeof raw.workout === 'object') return raw.workout;
+            if (raw.data && typeof raw.data === 'object') return raw.data;
+            return null;
+        })(createdRaw);
+        if (!created || (!created.id && !created._id)) {
+            throw new Error('Workout save returned an invalid response');
+        }
         invalidateWorkoutsCache();
-        return created || { id: Date.now(), title, date, duration, notes };
+        return created;
     } catch (err) {
-        // Fallback: return a client-side object so UI can update optimistically
         invalidateWorkoutsCache();
-        return { id: `local-${Date.now()}`, title, date, duration, notes, _local: true };
+        throw err;
     }
 }
 
@@ -251,6 +322,10 @@ async function addWorkout({ title, date, duration, notes, type, sets, exercises,
 window.addWorkout = addWorkout;
 window.loadWorkouts = loadWorkouts;
 window.invalidateWorkoutsCache = invalidateWorkoutsCache;
+window.getAppSettings = getAppSettings;
+window.setAppSettings = setAppSettings;
+window.getWeightUnit = getWeightUnit;
+window.setWeightUnit = setWeightUnit;
 
 /**
  * Update an existing workout by id. Returns the updated workout object on success.
@@ -343,6 +418,8 @@ window.deleteWorkout = deleteWorkout;
 async function completeWorkout(workoutId, summary = {}){
     const token = localStorage.getItem('jwt') || '';
     const payload = Object.assign({}, summary, { workoutId });
+    const normalizedWorkoutId = Number.parseInt(String(workoutId), 10);
+    const hasNumericWorkoutId = Number.isFinite(normalizedWorkoutId) && normalizedWorkoutId > 0;
     if (!token){
         // offline / not authenticated: persist locally
         try{
@@ -354,7 +431,19 @@ async function completeWorkout(workoutId, summary = {}){
         }catch(e){ throw new Error('Not authenticated and failed to persist locally'); }
     }
 
-    // try creating a session record
+    // First try dedicated workout completion endpoint for real saved workouts.
+    if (hasNumericWorkoutId) {
+        try{
+            const resComplete = await fetch(`/api/workouts/${encodeURIComponent(normalizedWorkoutId)}/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+            if(resComplete.ok){ const data = await resComplete.json().catch(()=>null); return data || payload; }
+        }catch(e){ /* continue to fallback */ }
+    }
+
+    // try creating a session record (legacy fallback)
     try{
         const res = await fetch('/api/sessions', {
             method: 'POST',
@@ -365,14 +454,16 @@ async function completeWorkout(workoutId, summary = {}){
         // try alternate endpoint
     }catch(e){ /* continue to fallback */ }
 
-    try{
-        const res2 = await fetch(`/api/workouts/${encodeURIComponent(workoutId)}/complete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify(payload)
-        });
-        if(res2.ok){ const data = await res2.json().catch(()=>null); return data || payload; }
-    }catch(e){ /* fall back to local */ }
+    if (hasNumericWorkoutId) {
+        try{
+            const res2 = await fetch(`/api/workouts/${encodeURIComponent(normalizedWorkoutId)}/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(payload)
+            });
+            if(res2.ok){ const data = await res2.json().catch(()=>null); return data || payload; }
+        }catch(e){ /* fall back to local */ }
+    }
 
     // final fallback: store locally
     try{
@@ -407,11 +498,14 @@ function saveCompletedPosts(posts) {
 
 function createCompletedPost({ title, workoutTitle, workoutId, summary } = {}) {
     const now = Date.now();
+    const owner = localStorage.getItem('username') || 'You';
     const post = {
         id: `post-${now}`,
         title: title || workoutTitle || 'Completed Workout',
         workoutTitle: workoutTitle || 'Workout',
         workoutId: workoutId || null,
+        owner,
+        description: '',
         created: now,
         summary: summary || {},
     };
@@ -438,6 +532,7 @@ function updateCompletedPost(id, updates = {}) {
     if (cleanedTitle) next.title = cleanedTitle;
     if (updates.activityType !== undefined) next.activityType = String(updates.activityType || '').trim();
     if (updates.intensity !== undefined) next.intensity = String(updates.intensity || '').trim();
+    if (updates.description !== undefined) next.description = String(updates.description || '').trim();
     if (updates.notes !== undefined) next.notes = String(updates.notes || '').trim();
     if (updates.photoDataUrl !== undefined) next.photoDataUrl = updates.photoDataUrl || '';
     if (updates.photoName !== undefined) next.photoName = String(updates.photoName || '').trim();

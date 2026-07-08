@@ -81,9 +81,9 @@
     (function(){
       // basic auth redirect
       const token = localStorage.getItem('jwt')||'';
-      if(!token) { window.location.href='login.html'; return; }
+      if(!token) { window.location.href='/pages/login.html'; return; }
       document.getElementById('username').textContent = localStorage.getItem('username')||'';
-      document.getElementById('logout').addEventListener('click', ()=>{ localStorage.removeItem('jwt'); localStorage.removeItem('username'); window.location.href='login.html'; });
+      document.getElementById('logout').addEventListener('click', ()=>{ localStorage.removeItem('jwt'); localStorage.removeItem('username'); window.location.href='/pages/login.html'; });
 
       // exercises
       const exList = document.getElementById('cwExercisesList');
@@ -138,7 +138,8 @@
           const lblU = document.createElement('label'); lblU.className='cw-label'; lblU.textContent='Weight unit';
           const sel = document.createElement('select'); sel.id='weightUnit'; sel.className='cw-input'; ['kg','lb'].forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent=u; sel.appendChild(o); });
           // preselect user preference if available
-          try{ const pref = localStorage.getItem('hc:weightUnit'); if(pref) sel.value = pref; }catch(e){}
+          try{ const pref = window.getWeightUnit ? window.getWeightUnit() : localStorage.getItem('hc:weightUnit'); if(pref) sel.value = pref; }catch(e){}
+          sel.addEventListener('change', function(){ try{ if(window.setWeightUnit) window.setWeightUnit(this.value); }catch(e){} });
           typeFields.appendChild(lblU); typeFields.appendChild(sel);
         } else {
           // other types: keep default fields
@@ -278,7 +279,8 @@
         const date = document.getElementById('date').value;
         const durationM = parseInt(durationField.value||'0',10)||0;
         const dist = (document.getElementById('distance')||{}).value||'';
-        const weightUnit = (localStorage.getItem('hc:weightUnit')) || (document.getElementById('weightUnit')||{}).value || 'kg';
+        const selectedWeightUnit = (document.getElementById('weightUnit')||{}).value || '';
+        const weightUnit = selectedWeightUnit || (window.getWeightUnit ? window.getWeightUnit() : localStorage.getItem('hc:weightUnit')) || 'lb';
         const exs = Array.from(exList.children).map(r=>{
           const name = (r.querySelector('.ex-name')||{value:''}).value;
           const reps = (r.querySelector('.ex-reps')||{value:0}).value;
@@ -390,24 +392,28 @@
             if(!diff.changed || !diff.changed.length){
               // nothing changed
               try{ sessionStorage.removeItem('hc:selectedWorkout'); }catch(e){}
-              window.location.href = 'dashboard.html';
+              window.location.href = '/pages/dashboard.html';
               return;
             }
             const payload = Object.assign({}, diff.values);
             const updated = await window.updateWorkout(sel.id || sel._id || sel._local_id || sel.localId || sel.uuid, payload);
             // clear selected marker to avoid accidental re-edit
             try{ sessionStorage.removeItem('hc:selectedWorkout'); }catch(e){}
-            window.location.href = 'dashboard.html';
+            window.location.href = '/pages/dashboard.html';
           } else {
             const created = await window.addWorkout({ title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
             try {
               // store a merged optimistic object so dashboard can render details even if server returns minimal object
               const saved = Object.assign({}, created || {}, { title, date, duration: durationM, notes, type, sets, exercises, distance, weightUnit });
-              // always mark optimistic saved item as local so dashboard keeps it until the server confirms persistence
-              saved._local = true;
-              sessionStorage.setItem('hc:newWorkout', JSON.stringify(saved));
+              // only mark as local when client generated a local id
+              saved._local = String(saved.id || '').startsWith('local-');
+              if (saved._local) {
+                sessionStorage.setItem('hc:newWorkout', JSON.stringify(saved));
+              } else {
+                sessionStorage.removeItem('hc:newWorkout');
+              }
             } catch (e) { /* ignore */ }
-            window.location.href = 'dashboard.html';
+            window.location.href = '/pages/dashboard.html';
           }
         } catch (e) {
           document.getElementById('cwError').textContent = e && e.message ? e.message : 'Save failed';

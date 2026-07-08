@@ -69,7 +69,7 @@
                             <div class="dash-stats-grid">
                                 <div class="dash-stat-card">
                                     <div class="stat-value" id="statTotal">0</div>
-                                    <div class="stat-label">Total</div>
+                                    <div class="stat-label">Completed</div>
                                 </div>
                                 <div class="dash-stat-card">
                                     <div class="stat-value" id="statRecent">0</div>
@@ -171,6 +171,7 @@
 
                 const list = document.getElementById('workoutList');
                 const countEl = document.getElementById('workoutCount');
+                const searchInput = document.getElementById('workoutSearch');
                 let latestWorkouts = [];
 
                 function formatDuration(d) {
@@ -185,17 +186,46 @@
                     return s;
                 }
 
+                function getWorkoutDataObject(w) {
+                    if (!w || w.data === null || w.data === undefined || w.data === '') return null;
+                    if (typeof w.data === 'object') return w.data;
+                    if (typeof w.data === 'string') {
+                        try { return JSON.parse(w.data); } catch (e) { return null; }
+                    }
+                    return null;
+                }
+
+                function getWorkoutCompletionTimestamp(w) {
+                    if (!w) return NaN;
+                    const data = getWorkoutDataObject(w);
+                    const completedAt = data && (data.completedAt || data.completed_at);
+                    if (completedAt) {
+                        const t = Date.parse(completedAt);
+                        if (!isNaN(t)) return t;
+                    }
+                    return NaN;
+                }
+
+                function isWorkoutCompleted(w) {
+                    const data = getWorkoutDataObject(w);
+                    if (!data) return false;
+                    return !!(data.completed || data.completedAt || data.completed_at);
+                }
+
                 function renderWorkouts(workouts) {
                     countEl.textContent = `${workouts.length} workout${workouts.length === 1 ? '' : 's'}`;
                     // compute stats
                     const now = Date.now();
                     const sevenDays = 7 * 24 * 60 * 60 * 1000;
+                    const completedCount = workouts.filter(isWorkoutCompleted).length;
                     const recentCount = workouts.filter(w => {
-                        if (!w.date) return false;
-                        const t = Date.parse(w.date);
+                        if (!isWorkoutCompleted(w)) return false;
+                        let t = getWorkoutCompletionTimestamp(w);
+                        if (isNaN(t) && w.date) t = Date.parse(w.date);
+                        if (isNaN(t) && w.created) t = Date.parse(w.created);
                         return !isNaN(t) && (now - t) <= sevenDays;
                     }).length;
-                    document.getElementById('statTotal').textContent = workouts.length;
+                    document.getElementById('statTotal').textContent = completedCount;
                     document.getElementById('statRecent').textContent = recentCount;
 
                     const durations = workouts.map(w => {
@@ -272,22 +302,12 @@
                             del.disabled = true; del.textContent = 'Deleting…';
                             try {
                                 await window.deleteWorkout(w.id);
-                                // remove card after server confirms
-                                if (card && card.parentNode) card.parentNode.removeChild(card);
-                                const newCount = Math.max(0, parseInt(workouts.length, 10) - 1);
-                                countEl.textContent = `${newCount} workout${newCount === 1 ? '' : 's'}`;
+                                await refreshWorkouts();
 
                                 showUndoSnackbar('Workout deleted', 'Undo', async function () {
                                     try {
-                                        const recreated = await window.addWorkout(backup);
-                                        const list = document.getElementById('workoutList');
-                                        const newCard = document.createElement('div');
-                                        newCard.className = 'workout-card';
-                                        const hh = document.createElement('h3'); hh.textContent = recreated.title || backup.title; newCard.appendChild(hh);
-                                        const pp = document.createElement('p'); pp.textContent = recreated.notes || backup.notes || ''; newCard.appendChild(pp);
-                                        list.insertBefore(newCard, list.firstChild);
-                                        const cur = parseInt((countEl.textContent || '0').split(' ')[0], 10) || 0;
-                                        countEl.textContent = `${cur + 1} workout${cur + 1 === 1 ? '' : 's'}`;
+                                        await window.addWorkout(backup);
+                                        await refreshWorkouts();
                                     } catch (e) {
                                         console.error('Undo recreate failed', e);
                                     }
@@ -311,6 +331,25 @@
                     }
                     list.innerHTML = '';
                     list.appendChild(frag);
+                }
+
+                function getFilteredWorkouts(workouts) {
+                    const q = ((searchInput && searchInput.value) || '').toLowerCase().trim();
+                    if (!q) return (workouts || []).slice();
+                    return (workouts || []).filter(w => {
+                        const t = (w.title || '').toLowerCase();
+                        const n = (w.notes || '').toLowerCase();
+                        const ex = w.data && w.data.exercises
+                            ? JSON.stringify(w.data.exercises).toLowerCase()
+                            : (w.exercises ? JSON.stringify(w.exercises).toLowerCase() : '');
+                        return t.includes(q) || n.includes(q) || ex.includes(q);
+                    });
+                }
+
+                function renderFromCurrentFilter() {
+                    const filtered = getFilteredWorkouts(latestWorkouts);
+                    renderWorkouts(filtered);
+                    renderPastWorkouts(filtered);
                 }
 
                 // refreshWorkouts fetches from server, merges optimistic created item, and renders
@@ -344,8 +383,7 @@
                             }
                         }
                     } catch (e) { /* ignore */ }
-                    renderWorkouts(workouts);
-                    renderPastWorkouts(workouts);
+                    renderFromCurrentFilter();
                 }
 
                 // initial render and a retry to pick up DB-saved items
@@ -374,13 +412,9 @@
                 }
 
                 // wire search filtering
-                const searchInput = document.getElementById('workoutSearch');
                 if(searchInput){
                     searchInput.addEventListener('input', function(){
-                        const q = (this.value||'').toLowerCase().trim();
-                        if(!q){ renderWorkouts(latestWorkouts); renderPastWorkouts(latestWorkouts); return; }
-                        const filtered = (latestWorkouts||[]).filter(w=>{ const t = (w.title||'').toLowerCase(); const n = (w.notes||'').toLowerCase(); const ex = w.data && w.data.exercises ? JSON.stringify(w.data.exercises).toLowerCase() : (w.exercises? JSON.stringify(w.exercises).toLowerCase() : ''); return t.includes(q) || n.includes(q) || ex.includes(q); });
-                        renderWorkouts(filtered); renderPastWorkouts(filtered);
+                        renderFromCurrentFilter();
                     });
                 }
 
@@ -436,10 +470,10 @@
                 function closeWorkoutModal(){ const modal=document.getElementById('workoutModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try { document.body.classList.remove('modal-open'); } catch(e){} }
 
                 // Settings modal for user preferences
-                function openSettings(){ const modal = document.getElementById('settingsModal'); if(!modal) return; modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); try{ document.body.classList.add('modal-open'); }catch(e){}; const cur = localStorage.getItem('hc:weightUnit') || 'lb'; const r = modal.querySelector(`input[name="unit"][value="${cur}"]`); if(r) r.checked = true; }
+                function openSettings(){ const modal = document.getElementById('settingsModal'); if(!modal) return; modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); try{ document.body.classList.add('modal-open'); }catch(e){}; const cur = (window.getWeightUnit ? window.getWeightUnit() : 'lb'); const r = modal.querySelector(`input[name="unit"][value="${cur}"]`); if(r) r.checked = true; }
                 function closeSettings(){ const modal=document.getElementById('settingsModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try{ document.body.classList.remove('modal-open'); }catch(e){} }
 
-                function saveSettings(){ const modal = document.getElementById('settingsModal'); if(!modal) return; const v = modal.querySelector('input[name="unit"]:checked'); const unit = v ? v.value : 'lb'; try{ localStorage.setItem('hc:weightUnit', unit); }catch(e){} closeSettings(); renderPastWorkouts(latestWorkouts); }
+                function saveSettings(){ const modal = document.getElementById('settingsModal'); if(!modal) return; const v = modal.querySelector('input[name="unit"]:checked'); const unit = v ? v.value : 'lb'; try{ if (window.setWeightUnit) { window.setWeightUnit(unit); } else { localStorage.setItem('hc:weightUnit', unit); } }catch(e){} closeSettings(); renderPastWorkouts(latestWorkouts); }
 
                 // Past workouts rendering: shows recent completed items with total weight
                 function parseNumber(s){ if(s===null||s===undefined) return 0; if(typeof s==='number') return s; const m = String(s).match(/(-?\d+\.?\d*)/); return m? parseFloat(m[1]) : 0; }
@@ -485,7 +519,7 @@
                         if(dd && dd.sets) parts.push(`${dd.sets} sets`);
                         if(Array.isArray(dd.exercises) && dd.exercises.length) parts.push(`${dd.exercises.length} exercises`);
                         const total = computeTotalWeightFor(w);
-                        const userUnit = localStorage.getItem('hc:weightUnit');
+                        const userUnit = window.getWeightUnit ? window.getWeightUnit() : localStorage.getItem('hc:weightUnit');
                         const unit = userUnit || (dd && dd.weightUnit) || 'lb';
                         if(total){
                             const sourceUnit = (dd && dd.weightUnit) || 'lb';

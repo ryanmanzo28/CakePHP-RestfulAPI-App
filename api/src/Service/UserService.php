@@ -25,7 +25,6 @@ class UserService
     }
     public function index()
     {
-        $users = TableRegistry::getTableLocator()->get('');
         $users = TableRegistry::getTableLocator()->get('Users');
         return $users->find()->all()->toArray();
     }
