@@ -7,6 +7,43 @@ function getStoredUsername() {
     return localStorage.getItem('username') || sessionStorage.getItem('username') || '';
 }
 
+async function tryRefreshAuthTokenFromStoredSession() {
+    const email = getStoredUsername();
+    const passwordHash = localStorage.getItem('passwordHash') || sessionStorage.getItem('passwordHash') || '';
+    if (!email || !passwordHash) return false;
+
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify({ email, password: passwordHash }),
+        });
+        if (!res.ok) return false;
+        const data = await res.json().catch(() => null);
+        if (!data || !data.token) return false;
+
+        const rememberMe = !!localStorage.getItem('jwt');
+        if (typeof setAuthSession === 'function') {
+            setAuthSession({ token: data.token, username: email, passwordHash, rememberMe });
+        } else {
+            const primary = rememberMe ? localStorage : sessionStorage;
+            const secondary = rememberMe ? sessionStorage : localStorage;
+            primary.setItem('jwt', data.token);
+            primary.setItem('username', email);
+            primary.setItem('passwordHash', passwordHash);
+            secondary.removeItem('jwt');
+            secondary.removeItem('username');
+            secondary.removeItem('passwordHash');
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 function clearAuthStorage() {
     const keys = ['jwt', 'username', 'passwordHash'];
     keys.forEach((key) => {
@@ -79,11 +116,19 @@ let workoutsCacheAt = 0;
 const APP_SETTINGS_KEY = 'hc:settings';
 const DEFAULT_APP_SETTINGS = Object.freeze({
     weightUnit: 'lb',
+    distanceUnit: 'km',
 });
 const LB_TO_KG = 0.45359237;
+const KM_TO_MI = 0.621371192;
 
 function normalizeWeightUnit(unit) {
     return unit === 'kg' ? 'kg' : 'lb';
+}
+
+function normalizeDistanceUnit(unit) {
+    if (unit === 'mi') return 'mi';
+    if (unit === 'm') return 'm';
+    return 'km';
 }
 
 function parseWeightNumber(value) {
@@ -113,6 +158,74 @@ function convertWeightValue(value, sourceUnit, targetUnit) {
     }
 
     return normalizedSource === 'lb' ? (parsed * LB_TO_KG) : (parsed / LB_TO_KG);
+}
+
+function parseDistanceNumber(value) {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    const normalized = String(value).trim().replace(/,/g, '');
+    if (!normalized) {
+        return null;
+    }
+
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function convertDistanceValue(value, sourceUnit, targetUnit) {
+    const parsed = parseDistanceNumber(value);
+    if (parsed === null) {
+        return null;
+    }
+
+    const normalizedSource = normalizeDistanceUnit(sourceUnit);
+    const normalizedTarget = normalizeDistanceUnit(targetUnit);
+    if (normalizedSource === normalizedTarget) {
+        return parsed;
+    }
+
+    let kmValue = parsed;
+    if (normalizedSource === 'mi') {
+        kmValue = parsed / KM_TO_MI;
+    } else if (normalizedSource === 'm') {
+        kmValue = parsed / 1000;
+    }
+
+    if (normalizedTarget === 'km') return kmValue;
+    if (normalizedTarget === 'mi') return kmValue * KM_TO_MI;
+    return kmValue * 1000;
+}
+
+function formatDistanceForDisplay(value, sourceUnit = 'km', targetUnit = getDistanceUnit(), options = {}) {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    const normalizedTarget = normalizeDistanceUnit(targetUnit || getDistanceUnit());
+    const normalizedSource = normalizeDistanceUnit(sourceUnit || 'km');
+    const converted = convertDistanceValue(value, normalizedSource, normalizedTarget);
+    const separator = Object.prototype.hasOwnProperty.call(options, 'separator') ? String(options.separator) : '';
+    let formattedValue = '';
+
+    if (converted === null) {
+        formattedValue = String(value).trim();
+    } else if (normalizedTarget === 'm') {
+        formattedValue = String(Math.round(converted));
+    } else if (Math.abs(converted) >= 100) {
+        formattedValue = String(Math.round(converted));
+    } else if (Math.abs(converted) >= 10) {
+        formattedValue = converted.toFixed(1);
+    } else {
+        formattedValue = converted.toFixed(2);
+    }
+
+    if (options.appendUnit === false) {
+        return formattedValue;
+    }
+
+    return `${formattedValue}${separator}${normalizedTarget}`;
 }
 
 function formatWeightForDisplay(value, sourceUnit, targetUnit = getWeightUnit(), options = {}) {
@@ -148,16 +261,24 @@ function getAppSettings() {
         const parsed = raw ? JSON.parse(raw) : {};
         const merged = Object.assign({}, fallback, parsed || {});
         merged.weightUnit = normalizeWeightUnit(merged.weightUnit);
+        merged.distanceUnit = normalizeDistanceUnit(merged.distanceUnit);
 
         // Backward compatibility: migrate old standalone weight key if present.
         const legacyWeightUnit = localStorage.getItem('hc:weightUnit');
+        const legacyDistanceUnit = localStorage.getItem('hc:distanceUnit');
         if (legacyWeightUnit && !raw) {
             merged.weightUnit = normalizeWeightUnit(legacyWeightUnit);
+        }
+        if (legacyDistanceUnit && !raw) {
+            merged.distanceUnit = normalizeDistanceUnit(legacyDistanceUnit);
+        }
+        if ((legacyWeightUnit || legacyDistanceUnit) && !raw) {
             localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(merged));
         }
 
         // Keep legacy key in sync while older page code may still read it.
         localStorage.setItem('hc:weightUnit', merged.weightUnit);
+        localStorage.setItem('hc:distanceUnit', merged.distanceUnit);
         return merged;
     } catch (e) {
         return fallback;
@@ -167,9 +288,11 @@ function getAppSettings() {
 function setAppSettings(partialSettings = {}) {
     const next = Object.assign({}, getAppSettings(), partialSettings || {});
     next.weightUnit = normalizeWeightUnit(next.weightUnit);
+    next.distanceUnit = normalizeDistanceUnit(next.distanceUnit);
     try {
         localStorage.setItem(APP_SETTINGS_KEY, JSON.stringify(next));
         localStorage.setItem('hc:weightUnit', next.weightUnit);
+        localStorage.setItem('hc:distanceUnit', next.distanceUnit);
     } catch (e) {
         // ignore storage failures; callers still get normalized return value
     }
@@ -187,6 +310,14 @@ function getWeightUnit() {
 
 function setWeightUnit(unit) {
     return setAppSettings({ weightUnit: unit });
+}
+
+function getDistanceUnit() {
+    return getAppSettings().distanceUnit;
+}
+
+function setDistanceUnit(unit) {
+    return setAppSettings({ distanceUnit: unit });
 }
 
 function invalidateWorkoutsCache() {
@@ -356,7 +487,7 @@ async function addWorkout({ title, date, duration, notes, type, sets, exercises,
     if (type !== undefined) dataBlob.type = type;
     if (sets !== undefined) dataBlob.sets = sets;
     if (exercises !== undefined) dataBlob.exercises = exercises;
-    if (distance !== undefined && distance !== null) dataBlob.distance = distance;
+    if (distance !== undefined) dataBlob.distance = distance;
     if (weightUnit !== undefined) dataBlob.weightUnit = weightUnit;
     if (Object.keys(dataBlob).length) body.data = dataBlob;
     try {
@@ -411,15 +542,31 @@ window.getAppSettings = getAppSettings;
 window.setAppSettings = setAppSettings;
 window.getWeightUnit = getWeightUnit;
 window.setWeightUnit = setWeightUnit;
+window.getDistanceUnit = getDistanceUnit;
+window.setDistanceUnit = setDistanceUnit;
 window.convertWeightValue = convertWeightValue;
 window.formatWeightForDisplay = formatWeightForDisplay;
+window.convertDistanceValue = convertDistanceValue;
+window.formatDistanceForDisplay = formatDistanceForDisplay;
+
+function normalizeWorkoutIdForApi(id) {
+    if (id === null || id === undefined) return null;
+    const raw = String(id).trim();
+    if (!raw) return null;
+    const numericMatch = raw.match(/(\d+)$/);
+    if (!numericMatch) return null;
+    const parsed = Number.parseInt(numericMatch[1], 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
 
 /**
  * Update an existing workout by id. Returns the updated workout object on success.
  */
-async function updateWorkout(id, { title, date, duration, notes, type, sets, exercises, distance, weightUnit } = {}){
-    const token = getAuthToken();
+async function updateWorkout(id, { title, date, duration, notes, type, sets, exercises, distance, weightUnit, data } = {}){
+    let token = getAuthToken();
     if(!token) throw new Error('Not authenticated');
+    const normalizedId = normalizeWorkoutIdForApi(id);
+    if (!normalizedId) throw new Error('Invalid workout id');
 
     function formatDurationValue(d) {
         if (d === null || d === undefined || d === '') return null;
@@ -432,25 +579,58 @@ async function updateWorkout(id, { title, date, duration, notes, type, sets, exe
         return String(d);
     }
 
-    const body = { title, date, duration: formatDurationValue(duration), notes };
+    const body = { token };
+    if (title !== undefined) body.title = title;
+    if (date !== undefined) body.date = date;
+    if (duration !== undefined) body.duration = formatDurationValue(duration);
+    if (notes !== undefined) body.notes = notes;
     const dataBlob = {};
     if (type !== undefined) dataBlob.type = type;
     if (sets !== undefined) dataBlob.sets = sets;
     if (exercises !== undefined) dataBlob.exercises = exercises;
-    if (distance !== undefined && distance !== null) dataBlob.distance = distance;
+    if (distance !== undefined) dataBlob.distance = distance;
     if (weightUnit !== undefined) dataBlob.weightUnit = weightUnit;
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+        Object.assign(dataBlob, data);
+    }
     if (Object.keys(dataBlob).length) body.data = dataBlob;
 
+    if (!Object.keys(body).length) {
+        throw new Error('No changes to save');
+    }
+
     try{
-        const res = await fetch(`/api/workouts/${encodeURIComponent(id)}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(body)
-        });
+        const endpoint = `/api/workouts/${encodeURIComponent(normalizedId)}`;
+        const methods = ['PUT', 'PATCH', 'POST'];
+        let res = null;
+
+        for (let attempt = 0; attempt < 2; attempt++) {
+            for (const method of methods) {
+                res = await fetch(endpoint, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) break;
+                // Retry alternate method when transport/method handling is unsupported.
+                if (![404, 405, 501].includes(res.status)) break;
+            }
+
+            if (res && res.ok) break;
+            // One-time auth refresh if token expired/invalid.
+            if (attempt === 0 && res && res.status === 401) {
+                const refreshed = await tryRefreshAuthTokenFromStoredSession();
+                if (refreshed) {
+                    token = getAuthToken();
+                    if (token) continue;
+                }
+            }
+            break;
+        }
         if(!res.ok){
             const text = await res.text().catch(()=>'');
             let data = null; try{ data = text? JSON.parse(text) : null; }catch(e){}
@@ -459,7 +639,7 @@ async function updateWorkout(id, { title, date, duration, notes, type, sets, exe
         }
         const updated = await res.json().catch(()=>null);
         invalidateWorkoutsCache();
-        return updated || Object.assign({ id }, body);
+        return updated || Object.assign({ id: normalizedId }, body);
     }catch(err){
         // On failure, throw so caller can surface error and decide optimistic behavior
         throw err;
@@ -474,13 +654,24 @@ window.updateWorkout = updateWorkout;
 async function deleteWorkout(id) {
     const token = getAuthToken();
     if (!token) throw new Error('Not authenticated');
-    const res = await fetch(`/api/workouts/${encodeURIComponent(id)}`, {
-        method: 'DELETE',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/json'
-        }
-    });
+    const normalizedId = normalizeWorkoutIdForApi(id);
+    if (!normalizedId) throw new Error('Invalid workout id');
+    const routes = [
+        { url: `/api/workouts/${encodeURIComponent(normalizedId)}`, method: 'DELETE' },
+        { url: `/api/workouts/${encodeURIComponent(normalizedId)}/delete`, method: 'POST' },
+    ];
+    let res = null;
+    for (const route of routes) {
+        res = await fetch(route.url, {
+            method: route.method,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json'
+            }
+        });
+        if (res.ok) break;
+        if (![404, 405, 501].includes(res.status)) break;
+    }
     if (!res.ok) {
         const text = await res.text().catch(() => '');
         let data = null;
@@ -583,15 +774,31 @@ function saveCompletedPosts(posts) {
     }
 }
 
+function getCurrentUserIdFromToken() {
+    const token = getAuthToken();
+    if (!token || token.indexOf('.') === -1) return '';
+    try {
+        const payloadPart = token.split('.')[1] || '';
+        const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+        const json = decodeURIComponent(atob(base64).split('').map((ch) => `%${(`00${ch.charCodeAt(0).toString(16)}`).slice(-2)}`).join(''));
+        const payload = JSON.parse(json);
+        return String(payload && (payload.sub || payload.user_id) ? (payload.sub || payload.user_id) : '').trim();
+    } catch (e) {
+        return '';
+    }
+}
+
 function createCompletedPost({ title, workoutTitle, workoutId, summary } = {}) {
     const now = Date.now();
     const owner = getStoredUsername() || 'You';
+    const ownerId = getCurrentUserIdFromToken();
     const post = {
         id: `post-${now}`,
         title: title || workoutTitle || 'Completed Workout',
         workoutTitle: workoutTitle || 'Workout',
         workoutId: workoutId || null,
         owner,
+        ownerId,
         description: '',
         created: now,
         summary: summary || {},

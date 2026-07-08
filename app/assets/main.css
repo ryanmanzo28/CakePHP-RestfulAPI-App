@@ -812,7 +812,7 @@ body.dashboard-page .dash-toolbar-card,
 body.dashboard-page .dash-main-card,
 body.dashboard-page .dash-side-card {
   border-radius: 12px;
-  border: 1px solid rgba(30, 30, 60, 0.05);
+  border: 1px solid transparent;
   background: #ffffff;
   box-shadow: 0 8px 20px rgba(20, 20, 60, 0.06);
 }
@@ -823,14 +823,22 @@ body.dashboard-page .dash-hero-card {
   overflow: hidden;
   text-align:center;
   background:
-    radial-gradient(120% 170% at 0% 0%, rgba(255, 255, 255, 0.38) 0%, rgba(255, 255, 255, 0) 55%),
-    radial-gradient(115% 150% at 100% 100%, rgba(66, 173, 255, 0.35) 0%, rgba(66, 173, 255, 0) 60%),
+    radial-gradient(52% 22% at 18% 64%, rgba(255, 255, 255, 0.20) 0%, rgba(255, 255, 255, 0.08) 36%, rgba(255, 255, 255, 0) 70%),
+    radial-gradient(46% 20% at 82% 34%, rgba(162, 232, 255, 0.20) 0%, rgba(133, 206, 255, 0.07) 40%, rgba(133, 206, 255, 0) 74%),
+    radial-gradient(120% 170% at 0% 0%, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 55%),
+    radial-gradient(115% 150% at 100% 100%, rgba(66, 173, 255, 0.26) 0%, rgba(66, 173, 255, 0) 60%),
     linear-gradient(120deg, #8fb6ff 0%, #6f9bff 42%, #5b8af7 100%);
-  border-color: rgba(56, 90, 180, 0.26);
+  background-size: 220% 180%, 220% 180%, 140% 140%, 140% 140%, 120% 120%;
+  background-position: -26% 66%, 126% 34%, 0% 0%, 100% 100%, 50% 50%;
+  border-color: transparent;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
     0 10px 24px rgba(31, 63, 145, 0.22);
-  animation: dashHeroCardBreath 13s ease-in-out infinite;
+  animation:
+    dashHeroCardBreath 16s ease-in-out infinite,
+    dashHeroBackdropFlow 14s ease-in-out infinite,
+    dashHeroCardShellPulse 16s ease-in-out infinite,
+    dashHeroCardSheenSweep 12s ease-in-out infinite;
 }
 
 body.dashboard-page .dash-hero-card::before,
@@ -839,72 +847,364 @@ body.dashboard-page .dash-hero-card::after {
   position: absolute;
   border-radius: 999px;
   pointer-events: none;
-  z-index: 0;
-  filter: blur(24px);
-  opacity: 0.45;
+  z-index: 1;
+  filter: blur(58px);
+  opacity: 0.66;
 }
 
 body.dashboard-page .dash-hero-card::before {
-  width: 240px;
-  height: 240px;
-  top: -70px;
-  right: -30px;
-  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0) 72%);
-  animation: dashHeroGlowDriftA 14s linear infinite;
+  width: 420px;
+  height: 420px;
+  top: -160px;
+  right: -110px;
+  background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.09) 55%, rgba(255, 255, 255, 0) 74%);
+  animation: dashHeroGlowDriftA 5.2s ease-in-out infinite;
   pointer-events: none;
   mix-blend-mode: screen;
+  border-radius: 58% 42% 63% 37% / 46% 54% 40% 60%;
+  transform-origin: 52% 48%;
 }
 
 body.dashboard-page .dash-hero-card::after {
-  width: 210px;
-  height: 210px;
-  left: -55px;
-  bottom: -65px;
-  background: radial-gradient(circle at 60% 55%, rgba(140, 226, 255, 0.50) 0%, rgba(114, 187, 255, 0.18) 55%, rgba(114, 187, 255, 0) 74%);
-  animation: dashHeroGlowDriftB 16s ease-in-out infinite;
+  width: 400px;
+  height: 400px;
+  left: -160px;
+  bottom: -160px;
+  background: radial-gradient(circle at 60% 55%, rgba(178, 241, 255, 0.48) 0%, rgba(114, 187, 255, 0.17) 55%, rgba(114, 187, 255, 0) 76%);
+  animation: dashHeroGlowDriftB 5.9s ease-in-out infinite;
+  border-radius: 44% 56% 41% 59% / 60% 40% 56% 44%;
+  transform-origin: 48% 52%;
 }
 
 body.dashboard-page .dash-hero-card > * {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 @keyframes dashHeroGlowDriftA {
-  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.40; }
-  25% { transform: translate3d(-12px, 8px, 0) scale(1.04); opacity: 0.48; }
-  50% { transform: translate3d(-28px, 18px, 0) scale(1.12); opacity: 0.60; }
-  75% { transform: translate3d(-10px, 6px, 0) scale(1.05); opacity: 0.50; }
-  100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.40; }
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(-4deg); opacity: 0.34; }
+  25% { transform: translate3d(-110px, 72px, 0) scale(1.18) rotate(3deg); opacity: 0.54; }
+  50% { transform: translate3d(-238px, 150px, 0) scale(1.38) rotate(9deg); opacity: 0.68; }
+  75% { transform: translate3d(-96px, 62px, 0) scale(1.2) rotate(2deg); opacity: 0.56; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(-4deg); opacity: 0.34; }
 }
 
 @keyframes dashHeroGlowDriftB {
-  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.36; }
-  25% { transform: translate3d(10px, -8px, 0) scale(1.03); opacity: 0.44; }
-  50% { transform: translate3d(30px, -20px, 0) scale(1.12); opacity: 0.54; }
-  75% { transform: translate3d(12px, -7px, 0) scale(1.04); opacity: 0.46; }
-  100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.36; }
+  0% { transform: translate3d(0, 0, 0) scale(1) rotate(5deg); opacity: 0.3; }
+  25% { transform: translate3d(106px, -74px, 0) scale(1.18) rotate(-2deg); opacity: 0.5; }
+  50% { transform: translate3d(248px, -166px, 0) scale(1.38) rotate(-8deg); opacity: 0.64; }
+  75% { transform: translate3d(102px, -66px, 0) scale(1.2) rotate(-1deg); opacity: 0.52; }
+  100% { transform: translate3d(0, 0, 0) scale(1) rotate(5deg); opacity: 0.3; }
 }
 
 @keyframes dashHeroCardBreath {
-  0% { filter: brightness(1) saturate(1); }
-  25% { filter: brightness(1.03) saturate(1.03); }
-  35% { filter: brightness(1.05) saturate(1.05); }
-  50% { filter: brightness(1.065) saturate(1.06); }
-  75% { filter: brightness(1.03) saturate(1.03); }
-  85% { filter: brightness(1.03) saturate(1.03); }
-  100% { filter: brightness(1) saturate(1); }
+  0% { filter: brightness(0.970) saturate(0.992); }
+  1% { filter: brightness(0.971) saturate(0.992); }
+  2% { filter: brightness(0.972) saturate(0.993); }
+  3% { filter: brightness(0.973) saturate(0.993); }
+  4% { filter: brightness(0.974) saturate(0.993); }
+  5% { filter: brightness(0.974) saturate(0.994); }
+  6% { filter: brightness(0.975) saturate(0.994); }
+  7% { filter: brightness(0.976) saturate(0.994); }
+  8% { filter: brightness(0.977) saturate(0.995); }
+  9% { filter: brightness(0.978) saturate(0.995); }
+  10% { filter: brightness(0.979) saturate(0.995); }
+  11% { filter: brightness(0.980) saturate(0.996); }
+  12% { filter: brightness(0.981) saturate(0.996); }
+  13% { filter: brightness(0.981) saturate(0.996); }
+  14% { filter: brightness(0.982) saturate(0.996); }
+  15% { filter: brightness(0.983) saturate(0.997); }
+  16% { filter: brightness(0.984) saturate(0.997); }
+  17% { filter: brightness(0.985) saturate(0.997); }
+  18% { filter: brightness(0.986) saturate(0.998); }
+  19% { filter: brightness(0.987) saturate(0.998); }
+  20% { filter: brightness(0.988) saturate(0.998); }
+  21% { filter: brightness(0.988) saturate(0.999); }
+  22% { filter: brightness(0.989) saturate(0.999); }
+  23% { filter: brightness(0.990) saturate(0.999); }
+  24% { filter: brightness(0.991) saturate(1.000); }
+  25% { filter: brightness(0.992) saturate(1.000); }
+  26% { filter: brightness(0.994) saturate(1.001); }
+  27% { filter: brightness(0.995) saturate(1.001); }
+  28% { filter: brightness(0.997) saturate(1.002); }
+  29% { filter: brightness(0.998) saturate(1.002); }
+  30% { filter: brightness(1.000) saturate(1.003); }
+  31% { filter: brightness(1.002) saturate(1.003); }
+  32% { filter: brightness(1.003) saturate(1.004); }
+  33% { filter: brightness(1.005) saturate(1.004); }
+  34% { filter: brightness(1.006) saturate(1.005); }
+  35% { filter: brightness(1.008) saturate(1.006); }
+  36% { filter: brightness(1.010) saturate(1.006); }
+  37% { filter: brightness(1.011) saturate(1.007); }
+  38% { filter: brightness(1.013) saturate(1.007); }
+  39% { filter: brightness(1.014) saturate(1.008); }
+  40% { filter: brightness(1.016) saturate(1.008); }
+  41% { filter: brightness(1.012) saturate(1.007); }
+  42% { filter: brightness(1.013) saturate(1.007); }
+  43% { filter: brightness(1.014) saturate(1.008); }
+  44% { filter: brightness(1.015) saturate(1.008); }
+  45% { filter: brightness(1.016) saturate(1.008); }
+  46% { filter: brightness(1.017) saturate(1.009); }
+  47% { filter: brightness(1.018) saturate(1.009); }
+  48% { filter: brightness(1.019) saturate(1.010); }
+  49% { filter: brightness(1.020) saturate(1.010); }
+  50% { filter: brightness(1.021) saturate(1.010); }
+  51% { filter: brightness(1.020) saturate(1.010); }
+  52% { filter: brightness(1.019) saturate(1.010); }
+  53% { filter: brightness(1.018) saturate(1.009); }
+  54% { filter: brightness(1.017) saturate(1.009); }
+  55% { filter: brightness(1.016) saturate(1.009); }
+  56% { filter: brightness(1.015) saturate(1.008); }
+  57% { filter: brightness(1.014) saturate(1.008); }
+  58% { filter: brightness(1.013) saturate(1.008); }
+  59% { filter: brightness(1.012) saturate(1.007); }
+  60% { filter: brightness(1.020) saturate(1.010); }
+  61% { filter: brightness(1.019) saturate(1.010); }
+  62% { filter: brightness(1.018) saturate(1.010); }
+  63% { filter: brightness(1.016) saturate(1.009); }
+  64% { filter: brightness(1.015) saturate(1.009); }
+  65% { filter: brightness(1.014) saturate(1.009); }
+  66% { filter: brightness(1.013) saturate(1.008); }
+  67% { filter: brightness(1.012) saturate(1.008); }
+  68% { filter: brightness(1.010) saturate(1.008); }
+  69% { filter: brightness(1.009) saturate(1.007); }
+  70% { filter: brightness(1.008) saturate(1.007); }
+  71% { filter: brightness(1.007) saturate(1.006); }
+  72% { filter: brightness(1.006) saturate(1.006); }
+  73% { filter: brightness(1.004) saturate(1.006); }
+  74% { filter: brightness(1.003) saturate(1.005); }
+  75% { filter: brightness(1.002) saturate(1.005); }
+  76% { filter: brightness(1.001) saturate(1.004); }
+  77% { filter: brightness(0.999) saturate(1.004); }
+  78% { filter: brightness(0.998) saturate(1.003); }
+  79% { filter: brightness(0.997) saturate(1.003); }
+  80% { filter: brightness(0.996) saturate(1.002); }
+  81% { filter: brightness(0.994) saturate(1.002); }
+  82% { filter: brightness(0.993) saturate(1.001); }
+  83% { filter: brightness(0.992) saturate(1.001); }
+  84% { filter: brightness(0.990) saturate(1.000); }
+  85% { filter: brightness(0.989) saturate(1.000); }
+  86% { filter: brightness(0.988) saturate(0.999); }
+  87% { filter: brightness(0.987) saturate(0.999); }
+  88% { filter: brightness(0.985) saturate(0.998); }
+  89% { filter: brightness(0.984) saturate(0.998); }
+  90% { filter: brightness(0.983) saturate(0.997); }
+  91% { filter: brightness(0.982) saturate(0.997); }
+  92% { filter: brightness(0.980) saturate(0.996); }
+  93% { filter: brightness(0.979) saturate(0.996); }
+  94% { filter: brightness(0.978) saturate(0.995); }
+  95% { filter: brightness(0.976) saturate(0.995); }
+  96% { filter: brightness(0.975) saturate(0.994); }
+  97% { filter: brightness(0.974) saturate(0.994); }
+  98% { filter: brightness(0.973) saturate(0.993); }
+  99% { filter: brightness(0.971) saturate(0.993); }
+  100% { filter: brightness(0.970) saturate(0.992); }
+}
+
+@keyframes dashHeroBackdropFlow {
+  0% { background-position: -26% 66%, 126% 34%, 0% 0%, 100% 100%, 50% 50%; }
+  25% { background-position: 8% 60%, 96% 40%, 30% 22%, 70% 78%, 40% 60%; }
+  50% { background-position: 44% 52%, 62% 48%, 58% 44%, 42% 56%, 30% 70%; }
+  75% { background-position: 14% 58%, 92% 42%, 24% 20%, 76% 80%, 44% 56%; }
+  100% { background-position: -26% 66%, 126% 34%, 0% 0%, 100% 100%, 50% 50%; }
+}
+
+@keyframes dashHeroCardShellPulse {
+  0% {
+    border-color: transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 10px 24px rgba(31, 63, 145, 0.2);
+  }
+  30% {
+    border-color: transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 12px 28px rgba(31, 63, 145, 0.24);
+  }
+  55% {
+    border-color: transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 14px 30px rgba(31, 63, 145, 0.27);
+  }
+  78% {
+    border-color: transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.19), 0 12px 27px rgba(31, 63, 145, 0.23);
+  }
+  100% {
+    border-color: transparent;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 10px 24px rgba(31, 63, 145, 0.2);
+  }
+}
+
+@keyframes dashHeroCardSheenSweep {
+  0% { background-position: -60% 68%, 150% 32%, 0% 0%, 100% 100%, 50% 50%; }
+  25% { background-position: -10% 60%, 102% 40%, 0% 0%, 100% 100%, 50% 50%; }
+  50% { background-position: 52% 50%, 52% 50%, 0% 0%, 100% 100%, 50% 50%; }
+  75% { background-position: 104% 42%, -2% 58%, 0% 0%, 100% 100%, 50% 50%; }
+  100% { background-position: 160% 34%, -56% 66%, 0% 0%, 100% 100%, 50% 50%; }
 }
 
 body.dashboard-page .dash-hero-head {
   margin: 0;
   border-radius: 10px;
   padding: 14px 16px;
-  background: inherit;
-  background-size: inherit;
-  animation: inherit;
-  will-change: inherit;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(1px);
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.002));
+  background-size: auto;
+  animation: dashHeroHeadPulse 15s ease-in-out infinite;
+  will-change: auto;
+  transition: box-shadow 260ms ease;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0),
+    0 0 0 1px rgba(255, 255, 255, 0);
+  backdrop-filter: blur(3.2px) saturate(1.04);
+}
+
+body.dashboard-page .dash-hero-head::before {
+  content: "";
+  position: absolute;
+  top: -45%;
+  left: -60%;
+  width: 58%;
+  height: 190%;
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.12) 46%, rgba(255, 255, 255, 0) 100%);
+  transform: translate3d(-140%, 0, 0) rotate(14deg);
+  animation: dashHeroHeadSheen 8.5s linear infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.dashboard-page .dash-hero-head::after {
+  content: "";
+  position: absolute;
+  inset: -8% -6%;
+  background: linear-gradient(125deg, rgba(255, 255, 255, 0.008) 0%, rgba(255, 255, 255, 0.024) 45%, rgba(255, 255, 255, 0.008) 100%);
+  transform: translate3d(-3%, 0, 0);
+  animation: dashHeroPanelSweep 14s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body.dashboard-page .dash-hero-head > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes dashHeroHeadSheen {
+  0% { transform: translate3d(-140%, 0, 0) rotate(14deg); opacity: 0; }
+  14% { opacity: 0.15; }
+  42% { opacity: 0.5; }
+  70% { opacity: 0.2; }
+  100% { transform: translate3d(250%, 0, 0) rotate(14deg); opacity: 0; }
+}
+
+@keyframes dashHeroHeadPulse {
+  0% { background-color: rgba(255, 255, 255, 0.012); }
+  1% { background-color: rgba(255, 255, 255, 0.012); }
+  2% { background-color: rgba(255, 255, 255, 0.013); }
+  3% { background-color: rgba(255, 255, 255, 0.013); }
+  4% { background-color: rgba(255, 255, 255, 0.014); }
+  5% { background-color: rgba(255, 255, 255, 0.014); }
+  6% { background-color: rgba(255, 255, 255, 0.015); }
+  7% { background-color: rgba(255, 255, 255, 0.015); }
+  8% { background-color: rgba(255, 255, 255, 0.016); }
+  9% { background-color: rgba(255, 255, 255, 0.016); }
+  10% { background-color: rgba(255, 255, 255, 0.017); }
+  11% { background-color: rgba(255, 255, 255, 0.017); }
+  12% { background-color: rgba(255, 255, 255, 0.018); }
+  13% { background-color: rgba(255, 255, 255, 0.018); }
+  14% { background-color: rgba(255, 255, 255, 0.019); }
+  15% { background-color: rgba(255, 255, 255, 0.019); }
+  16% { background-color: rgba(255, 255, 255, 0.019); }
+  17% { background-color: rgba(255, 255, 255, 0.020); }
+  18% { background-color: rgba(255, 255, 255, 0.020); }
+  19% { background-color: rgba(255, 255, 255, 0.021); }
+  20% { background-color: rgba(255, 255, 255, 0.021); }
+  21% { background-color: rgba(255, 255, 255, 0.022); }
+  22% { background-color: rgba(255, 255, 255, 0.022); }
+  23% { background-color: rgba(255, 255, 255, 0.023); }
+  24% { background-color: rgba(255, 255, 255, 0.023); }
+  25% { background-color: rgba(255, 255, 255, 0.024); }
+  26% { background-color: rgba(255, 255, 255, 0.024); }
+  27% { background-color: rgba(255, 255, 255, 0.025); }
+  28% { background-color: rgba(255, 255, 255, 0.025); }
+  29% { background-color: rgba(255, 255, 255, 0.026); }
+  30% { background-color: rgba(255, 255, 255, 0.026); }
+  31% { background-color: rgba(255, 255, 255, 0.027); }
+  32% { background-color: rgba(255, 255, 255, 0.028); }
+  33% { background-color: rgba(255, 255, 255, 0.028); }
+  34% { background-color: rgba(255, 255, 255, 0.029); }
+  35% { background-color: rgba(255, 255, 255, 0.030); }
+  36% { background-color: rgba(255, 255, 255, 0.031); }
+  37% { background-color: rgba(255, 255, 255, 0.032); }
+  38% { background-color: rgba(255, 255, 255, 0.032); }
+  39% { background-color: rgba(255, 255, 255, 0.033); }
+  40% { background-color: rgba(255, 255, 255, 0.034); }
+  41% { background-color: rgba(255, 255, 255, 0.030); }
+  42% { background-color: rgba(255, 255, 255, 0.031); }
+  43% { background-color: rgba(255, 255, 255, 0.031); }
+  44% { background-color: rgba(255, 255, 255, 0.032); }
+  45% { background-color: rgba(255, 255, 255, 0.033); }
+  46% { background-color: rgba(255, 255, 255, 0.033); }
+  47% { background-color: rgba(255, 255, 255, 0.034); }
+  48% { background-color: rgba(255, 255, 255, 0.034); }
+  49% { background-color: rgba(255, 255, 255, 0.034); }
+  50% { background-color: rgba(255, 255, 255, 0.034); }
+  51% { background-color: rgba(255, 255, 255, 0.034); }
+  52% { background-color: rgba(255, 255, 255, 0.034); }
+  53% { background-color: rgba(255, 255, 255, 0.034); }
+  54% { background-color: rgba(255, 255, 255, 0.033); }
+  55% { background-color: rgba(255, 255, 255, 0.033); }
+  56% { background-color: rgba(255, 255, 255, 0.032); }
+  57% { background-color: rgba(255, 255, 255, 0.031); }
+  58% { background-color: rgba(255, 255, 255, 0.031); }
+  59% { background-color: rgba(255, 255, 255, 0.030); }
+  60% { background-color: rgba(255, 255, 255, 0.034); }
+  61% { background-color: rgba(255, 255, 255, 0.033); }
+  62% { background-color: rgba(255, 255, 255, 0.032); }
+  63% { background-color: rgba(255, 255, 255, 0.031); }
+  64% { background-color: rgba(255, 255, 255, 0.031); }
+  65% { background-color: rgba(255, 255, 255, 0.030); }
+  66% { background-color: rgba(255, 255, 255, 0.029); }
+  67% { background-color: rgba(255, 255, 255, 0.028); }
+  68% { background-color: rgba(255, 255, 255, 0.027); }
+  69% { background-color: rgba(255, 255, 255, 0.026); }
+  70% { background-color: rgba(255, 255, 255, 0.026); }
+  71% { background-color: rgba(255, 255, 255, 0.025); }
+  72% { background-color: rgba(255, 255, 255, 0.024); }
+  73% { background-color: rgba(255, 255, 255, 0.024); }
+  74% { background-color: rgba(255, 255, 255, 0.023); }
+  75% { background-color: rgba(255, 255, 255, 0.023); }
+  76% { background-color: rgba(255, 255, 255, 0.022); }
+  77% { background-color: rgba(255, 255, 255, 0.022); }
+  78% { background-color: rgba(255, 255, 255, 0.021); }
+  79% { background-color: rgba(255, 255, 255, 0.021); }
+  80% { background-color: rgba(255, 255, 255, 0.021); }
+  81% { background-color: rgba(255, 255, 255, 0.020); }
+  82% { background-color: rgba(255, 255, 255, 0.020); }
+  83% { background-color: rgba(255, 255, 255, 0.019); }
+  84% { background-color: rgba(255, 255, 255, 0.019); }
+  85% { background-color: rgba(255, 255, 255, 0.018); }
+  86% { background-color: rgba(255, 255, 255, 0.018); }
+  87% { background-color: rgba(255, 255, 255, 0.018); }
+  88% { background-color: rgba(255, 255, 255, 0.017); }
+  89% { background-color: rgba(255, 255, 255, 0.017); }
+  90% { background-color: rgba(255, 255, 255, 0.016); }
+  91% { background-color: rgba(255, 255, 255, 0.016); }
+  92% { background-color: rgba(255, 255, 255, 0.015); }
+  93% { background-color: rgba(255, 255, 255, 0.015); }
+  94% { background-color: rgba(255, 255, 255, 0.015); }
+  95% { background-color: rgba(255, 255, 255, 0.014); }
+  96% { background-color: rgba(255, 255, 255, 0.014); }
+  97% { background-color: rgba(255, 255, 255, 0.013); }
+  98% { background-color: rgba(255, 255, 255, 0.013); }
+  99% { background-color: rgba(255, 255, 255, 0.012); }
+  100% { background-color: rgba(255, 255, 255, 0.012); }
+}
+
+@keyframes dashHeroPanelSweep {
+  0% { transform: translate3d(-4%, 0, 0); opacity: 0.07; }
+  25% { transform: translate3d(1%, -1%, 0); opacity: 0.1; }
+  50% { transform: translate3d(4%, -2%, 0); opacity: 0.13; }
+  75% { transform: translate3d(1%, -1%, 0); opacity: 0.1; }
+  100% { transform: translate3d(-4%, 0, 0); opacity: 0.07; }
 }
 
 body.dashboard-page .dash-eyebrow {
@@ -1182,6 +1482,14 @@ body.dashboard-page .feed-avatar {
   flex: 0 0 auto;
 }
 
+body.dashboard-page .feed-avatar.mine {
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+}
+
+body.dashboard-page .feed-avatar.community {
+  background: linear-gradient(135deg, #14b87d, #059669);
+}
+
 body.dashboard-page .feed-heading {
   min-width: 0;
   display: flex;
@@ -1239,17 +1547,16 @@ body.dashboard-page .feed-source.community {
 body.dashboard-page .feed-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0;
   margin-top: 8px;
 }
 
-body.dashboard-page .feed-chip {
-  border: 1px solid rgba(39, 50, 84, 0.14);
-  background: #f7f9ff;
-  border-radius: 999px;
-  padding: 4px 9px;
+body.dashboard-page .feed-meta-text {
+  display: inline-block;
   font-size: 12px;
-  color: #293250;
+  color: #51607a;
+  letter-spacing: 0.01em;
+  line-height: 1.35;
 }
 
 body.dashboard-page .feed-notes {
@@ -1575,10 +1882,6 @@ body.dashboard-page .workout-card {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  body.dashboard-page .dash-hero-head,
-  body.dashboard-page .dash-hero-card,
-  body.dashboard-page .dash-hero-card::before,
-  body.dashboard-page .dash-hero-card::after,
   body.dashboard-page .dash-toolbar-card,
   body.dashboard-page .dash-main-card,
   body.dashboard-page .dash-side-card,

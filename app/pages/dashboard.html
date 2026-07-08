@@ -119,8 +119,16 @@
                         <div class="settings-block">
                             <label class="small">Preferred weight unit</label>
                             <div class="settings-radio-row">
-                                <label><input type="radio" name="unit" value="lb" /> lb</label>
-                                <label><input type="radio" name="unit" value="kg" /> kg</label>
+                                <label><input type="radio" name="weightUnit" value="lb" /> lb</label>
+                                <label><input type="radio" name="weightUnit" value="kg" /> kg</label>
+                            </div>
+                        </div>
+                        <div class="settings-block">
+                            <label class="small">Preferred distance unit</label>
+                            <div class="settings-radio-row">
+                                <label><input type="radio" name="distanceUnit" value="km" /> km</label>
+                                <label><input type="radio" name="distanceUnit" value="mi" /> mi</label>
+                                <label><input type="radio" name="distanceUnit" value="m" /> m</label>
                             </div>
                         </div>
                         <div class="settings-actions">
@@ -165,13 +173,15 @@
                 if (earlyAddBtn) {
                     earlyAddBtn.addEventListener('click', () => {
                         try {
+                            sessionStorage.removeItem('hc:selectedWorkout');
+                            sessionStorage.removeItem('hc:currentWorkout');
                             if (document.startViewTransition) {
-                                document.startViewTransition(() => { window.location.href = '/pages/addworkout.html'; }).catch(()=>{});
+                                document.startViewTransition(() => { window.location.href = '/pages/addworkout.html?new=1'; }).catch(()=>{});
                             } else {
-                                window.location.href = '/pages/addworkout.html';
+                                window.location.href = '/pages/addworkout.html?new=1';
                             }
                         } catch (err) {
-                            window.location.href = '/pages/addworkout.html';
+                            window.location.href = '/pages/addworkout.html?new=1';
                         }
                     });
                 }
@@ -180,6 +190,49 @@
                 const countEl = document.getElementById('workoutCount');
                 const searchInput = document.getElementById('workoutSearch');
                 let latestWorkouts = [];
+                let latestCommunityFeed = [];
+                let communityFeedFetchedAt = 0;
+                const COMMUNITY_FEED_CACHE_TTL_MS = 60000;
+
+                function parseIsMine(value) {
+                    if (value === true || value === 1) return true;
+                    if (typeof value === 'string') {
+                        const normalized = value.trim().toLowerCase();
+                        return normalized === '1' || normalized === 'true' || normalized === 'yes';
+                    }
+                    return false;
+                }
+
+                async function loadCommunityFeed(options = {}) {
+                    const forceRefresh = !!(options && options.forceRefresh);
+                    const token = (window.getAuthToken && window.getAuthToken()) || localStorage.getItem('jwt') || sessionStorage.getItem('jwt') || '';
+                    if (!token) return [];
+
+                    const useCache = !forceRefresh
+                        && communityFeedFetchedAt
+                        && (Date.now() - communityFeedFetchedAt < COMMUNITY_FEED_CACHE_TTL_MS)
+                        && Array.isArray(latestCommunityFeed);
+                    if (useCache) {
+                        return latestCommunityFeed.slice();
+                    }
+
+                    try {
+                        const res = await fetch('/api/workouts/feed?limit=10000', {
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Accept': 'application/json'
+                            }
+                        });
+                        if (!res.ok) return latestCommunityFeed.slice();
+                        const json = await res.json().catch(() => []);
+                        const arr = Array.isArray(json) ? json : [];
+                        latestCommunityFeed = arr;
+                        communityFeedFetchedAt = Date.now();
+                        return arr.slice();
+                    } catch (e) {
+                        return latestCommunityFeed.slice();
+                    }
+                }
 
                 function formatDuration(d) {
                     if (d === null || d === undefined || d === '') return '';
@@ -191,6 +244,14 @@
                     const s = String(d).trim();
                     if (/^\d+$/.test(s)) return `${s}m`;
                     return s;
+                }
+
+                function formatDistanceText(distance, sourceUnit = 'km') {
+                    if (distance === null || distance === undefined || distance === '') return '';
+                    if (window.formatDistanceForDisplay) {
+                        return window.formatDistanceForDisplay(distance, sourceUnit, (window.getDistanceUnit ? window.getDistanceUnit() : 'km'), { separator: ' ' });
+                    }
+                    return `${distance} ${sourceUnit || 'km'}`;
                 }
 
                 function getWorkoutDataObject(w) {
@@ -267,7 +328,7 @@
                         const durText = formatDuration(w.duration);
                         if (durText) parts.push(durText);
                         // if server provided distance inside data blob
-                        if (w.data && w.data.distance) parts.push(`${w.data.distance}km`);
+                        if (w.data && w.data.distance) parts.push(formatDistanceText(w.data.distance, (w.data.distanceUnit || 'km')));
                         meta.textContent = parts.join(' • ');
                         card.appendChild(meta);
 
@@ -284,7 +345,7 @@
                                         const s = document.createElement('div'); s.className='small muted'; s.textContent = `${dd.sets} sets`; card.appendChild(s);
                                     }
                                     if (dd.distance) {
-                                        const dnode = document.createElement('div'); dnode.className='small muted'; dnode.textContent = `Distance: ${dd.distance} km`; card.appendChild(dnode);
+                                        const dnode = document.createElement('div'); dnode.className='small muted'; dnode.textContent = `Distance: ${formatDistanceText(dd.distance, (dd.distanceUnit || 'km'))}`; card.appendChild(dnode);
                                     }
                                     if (Array.isArray(dd.exercises) && dd.exercises.length) {
                                         const ul = document.createElement('ul'); ul.style.margin='8px 0 0'; ul.className='cw-ex-list';
@@ -358,14 +419,16 @@
                 function renderFromCurrentFilter() {
                     const filtered = getFilteredWorkouts(latestWorkouts);
                     renderWorkouts(filtered);
-                    renderPastWorkouts(filtered);
+                    renderPastWorkouts(filtered, latestCommunityFeed);
                 }
 
                 // refreshWorkouts fetches from server, merges optimistic created item, and renders
                 async function refreshWorkouts() {
+                    const shouldForceRefresh = !!(sessionStorage.getItem('hc:newWorkout') || sessionStorage.getItem('hc:forceRefresh'));
                     const serverWorkouts = await loadWorkouts() || [];
                     let workouts = serverWorkouts.slice();
                     latestWorkouts = workouts.slice();
+                    latestCommunityFeed = await loadCommunityFeed({ forceRefresh: shouldForceRefresh });
                     try {
                         const raw = sessionStorage.getItem('hc:newWorkout');
                         if (raw) {
@@ -392,6 +455,7 @@
                             }
                         }
                     } catch (e) { /* ignore */ }
+                    try { sessionStorage.removeItem('hc:forceRefresh'); } catch (e) { /* ignore */ }
                     renderFromCurrentFilter();
                 }
 
@@ -405,13 +469,15 @@
                 if (addBtn) {
                     addBtn.addEventListener('click', () => {
                         try {
+                            sessionStorage.removeItem('hc:selectedWorkout');
+                            sessionStorage.removeItem('hc:currentWorkout');
                             if (document.startViewTransition) {
-                                document.startViewTransition(() => { window.location.href = '/pages/addworkout.html'; }).catch(()=>{});
+                                document.startViewTransition(() => { window.location.href = '/pages/addworkout.html?new=1'; }).catch(()=>{});
                             } else {
-                                window.location.href = '/pages/addworkout.html';
+                                window.location.href = '/pages/addworkout.html?new=1';
                             }
                         } catch (err) {
-                            window.location.href = '/pages/addworkout.html';
+                            window.location.href = '/pages/addworkout.html?new=1';
                         }
                     });
                 }
@@ -457,7 +523,7 @@
                     const details = document.getElementById('modalDetails'); details.innerHTML = '';
                     const dd = w.data ? (typeof w.data==='string'? JSON.parse(w.data) : w.data) : (w.exercises? { exercises: w.exercises, sets: w.sets } : {});
                     if(dd.sets) { const e=document.createElement('div'); e.className='small muted'; e.textContent = dd.sets + ' sets'; details.appendChild(e); }
-                    if(dd.distance) { const e=document.createElement('div'); e.className='small muted'; e.textContent = 'Distance: '+dd.distance+' km'; details.appendChild(e); }
+                    if(dd.distance) { const e=document.createElement('div'); e.className='small muted'; e.textContent = 'Distance: ' + formatDistanceText(dd.distance, (dd.distanceUnit || 'km')); details.appendChild(e); }
                     if(Array.isArray(dd.exercises)){
                         const preferredUnit = window.getWeightUnit ? window.getWeightUnit() : 'lb';
                         const sourceUnit = (dd && dd.weightUnit) || preferredUnit;
@@ -481,10 +547,37 @@
                 function closeWorkoutModal(){ const modal=document.getElementById('workoutModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try { document.body.classList.remove('modal-open'); } catch(e){} }
 
                 // Settings modal for user preferences
-                function openSettings(){ const modal = document.getElementById('settingsModal'); if(!modal) return; modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); try{ document.body.classList.add('modal-open'); }catch(e){}; const cur = (window.getWeightUnit ? window.getWeightUnit() : 'lb'); const r = modal.querySelector(`input[name="unit"][value="${cur}"]`); if(r) r.checked = true; }
+                function openSettings(){
+                    const modal = document.getElementById('settingsModal');
+                    if(!modal) return;
+                    modal.classList.add('open');
+                    modal.setAttribute('aria-hidden','false');
+                    try{ document.body.classList.add('modal-open'); }catch(e){}
+                    const weightCur = (window.getWeightUnit ? window.getWeightUnit() : 'lb');
+                    const distanceCur = (window.getDistanceUnit ? window.getDistanceUnit() : 'km');
+                    const wr = modal.querySelector(`input[name="weightUnit"][value="${weightCur}"]`);
+                    const dr = modal.querySelector(`input[name="distanceUnit"][value="${distanceCur}"]`);
+                    if(wr) wr.checked = true;
+                    if(dr) dr.checked = true;
+                }
                 function closeSettings(){ const modal=document.getElementById('settingsModal'); if(!modal) return; modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); try{ document.body.classList.remove('modal-open'); }catch(e){} }
 
-                function saveSettings(){ const modal = document.getElementById('settingsModal'); if(!modal) return; const v = modal.querySelector('input[name="unit"]:checked'); const unit = v ? v.value : 'lb'; try{ if (window.setWeightUnit) { window.setWeightUnit(unit); } else { localStorage.setItem('hc:weightUnit', unit); } }catch(e){} closeSettings(); renderPastWorkouts(latestWorkouts); }
+                function saveSettings(){
+                    const modal = document.getElementById('settingsModal');
+                    if(!modal) return;
+                    const weightNode = modal.querySelector('input[name="weightUnit"]:checked');
+                    const distanceNode = modal.querySelector('input[name="distanceUnit"]:checked');
+                    const weightUnit = weightNode ? weightNode.value : 'lb';
+                    const distanceUnit = distanceNode ? distanceNode.value : 'km';
+                    try{
+                        if (window.setWeightUnit) { window.setWeightUnit(weightUnit); }
+                        else { localStorage.setItem('hc:weightUnit', weightUnit); }
+                        if (window.setDistanceUnit) { window.setDistanceUnit(distanceUnit); }
+                        else { localStorage.setItem('hc:distanceUnit', distanceUnit); }
+                    }catch(e){}
+                    closeSettings();
+                    renderFromCurrentFilter();
+                }
 
                 // Past workouts rendering: shows recent completed items with total weight
                 function parseNumber(s){ if(s===null||s===undefined) return 0; if(typeof s==='number') return s; const m = String(s).match(/(-?\d+\.?\d*)/); return m? parseFloat(m[1]) : 0; }
@@ -496,25 +589,71 @@
                     return total;
                 }catch(e){ return 0; } }
 
-                function renderPastWorkouts(workouts){
+                function renderPastWorkouts(workouts, communityFeed){
                     const el = document.getElementById('pastWorkouts'); if(!el) return;
-                    const posts = (window.getCompletedPosts ? window.getCompletedPosts() : []).slice().sort((a,b)=>(b.created||0)-(a.created||0));
+                    const posts = (window.getCompletedPosts ? window.getCompletedPosts() : []).slice();
+                    const community = Array.isArray(communityFeed) ? communityFeed.slice() : [];
                     el.innerHTML='';
 
-                    if(posts.length){
-                        posts.slice(0, 8).forEach(p => {
-                            const card = document.createElement('div'); card.className='past-card';
-                            const when = document.createElement('div'); when.className='small muted'; when.textContent = new Date(p.created || Date.now()).toLocaleDateString();
-                            const title = document.createElement('div'); title.className='past-title'; title.textContent = p.title || p.workoutTitle || 'Completed Workout';
-                            const meta = document.createElement('div'); meta.className='small muted';
-                            const s = p.summary || {};
+                    const feedItems = [];
+
+                    posts.forEach(p => {
+                        feedItems.push({
+                            kind: 'local-post',
+                            createdAt: p && p.created ? p.created : Date.now(),
+                            post: p
+                        });
+                    });
+
+                    community.forEach(w => {
+                        const createdAt = Date.parse(w.created || w.date || 0) || 0;
+                        feedItems.push({
+                            kind: parseIsMine(w.isMine) ? 'my-workout' : 'community-workout',
+                            createdAt: createdAt || Date.now(),
+                            workout: w
+                        });
+                    });
+
+                    feedItems.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+                    if (feedItems.length) {
+                        feedItems.forEach(item => {
+                            const card = document.createElement('div');
+                            card.className = 'past-card';
+
+                            const when = document.createElement('div');
+                            when.className = 'small muted';
+                            when.textContent = new Date(item.createdAt || Date.now()).toLocaleDateString();
+                            card.appendChild(when);
+
+                            const title = document.createElement('div');
+                            title.className = 'past-title';
+
+                            const meta = document.createElement('div');
+                            meta.className = 'small muted';
                             const parts = [];
-                            if(s.setsCompleted) parts.push(`${s.setsCompleted} sets`);
-                            if(s.exercisesCompleted) parts.push(`${s.exercisesCompleted} done`);
-                            if(s.durationSeconds) parts.push(`${Math.max(1, Math.round(s.durationSeconds/60))}m`);
-                            if(p.workoutTitle) parts.push(`from ${p.workoutTitle}`);
+
+                            if (item.kind === 'local-post') {
+                                const p = item.post || {};
+                                const s = p.summary || {};
+                                title.textContent = p.title || p.workoutTitle || 'Completed Workout';
+                                if (s.setsCompleted) parts.push(`${s.setsCompleted} sets`);
+                                if (s.exercisesCompleted) parts.push(`${s.exercisesCompleted} done`);
+                                if (s.durationSeconds) parts.push(`${Math.max(1, Math.round(s.durationSeconds / 60))}m`);
+                                if (p.workoutTitle) parts.push(`from ${p.workoutTitle}`);
+                                parts.push('You');
+                            } else {
+                                const w = item.workout || {};
+                                title.textContent = w.title || w.name || 'Workout';
+                                const ownerName = parseIsMine(w.isMine) ? 'You' : (w.owner || 'Member');
+                                parts.push(ownerName);
+                                if (w.duration) parts.push(String(w.duration));
+                                if (w.notes) parts.push('posted');
+                            }
+
                             meta.textContent = parts.join(' • ');
-                            card.appendChild(when); card.appendChild(title); card.appendChild(meta);
+                            card.appendChild(title);
+                            card.appendChild(meta);
                             el.appendChild(card);
                         });
                         return;
@@ -522,8 +661,7 @@
 
                     // fallback to workout-based rendering if no completed posts yet
                     const sorted = workouts.slice().sort((a,b)=>{ const ta=Date.parse(a.date||a.created||0)||0; const tb=Date.parse(b.date||b.created||0)||0; return tb-ta; });
-                    let count = 0;
-                    for(const w of sorted){ if(count++>=8) break; const card = document.createElement('div'); card.className='past-card'; const when = document.createElement('div'); when.className='small muted'; when.textContent = w.date || (w.created? new Date(w.created).toLocaleDateString() : ''); card.appendChild(when);
+                    for(const w of sorted){ const card = document.createElement('div'); card.className='past-card'; const when = document.createElement('div'); when.className='small muted'; when.textContent = w.date || (w.created? new Date(w.created).toLocaleDateString() : ''); card.appendChild(when);
                         const title = document.createElement('div'); title.className='past-title'; title.textContent = w.title || w.name || 'Workout'; card.appendChild(title);
                         const dd = w.data ? (typeof w.data==='string'? JSON.parse(w.data): w.data) : (w.exercises? { exercises: w.exercises, sets: w.sets } : {});
                         const meta = document.createElement('div'); meta.className='small muted'; const parts = [];

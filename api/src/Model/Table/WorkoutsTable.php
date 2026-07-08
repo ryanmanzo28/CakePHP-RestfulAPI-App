@@ -139,6 +139,64 @@ class WorkoutsTable extends Table
                     return json_last_error() === JSON_ERROR_NONE;
                 },
                 'message' => 'Data must be a valid JSON string or array.',
+            ])
+            ->add('data', 'validExerciseReps', [
+                'rule' => static function ($value, $context): bool {
+                    $maxExerciseReps = (10 * (10 ** 2)) ** 2;
+                    if (!array_key_exists('data', $context['data'] ?? [])) {
+                        return true;
+                    }
+
+                    if ($value === null || $value === '') {
+                        return true;
+                    }
+
+                    $payload = null;
+                    if (is_array($value)) {
+                        $payload = $value;
+                    } elseif (is_string($value)) {
+                        $decoded = json_decode($value, true);
+                        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+                            return true; // handled by validJsonPayload
+                        }
+                        $payload = $decoded;
+                    } else {
+                        return true;
+                    }
+
+                    $exercises = $payload['exercises'] ?? null;
+                    if (!is_array($exercises)) {
+                        return true;
+                    }
+
+                    foreach ($exercises as $exercise) {
+                        if (!is_array($exercise)) {
+                            continue;
+                        }
+
+                        $name = isset($exercise['name']) ? trim((string)$exercise['name']) : '';
+                        if ($name === '') {
+                            continue;
+                        }
+
+                        $reps = $exercise['reps'] ?? null;
+                        if (!is_numeric($reps)) {
+                            return false;
+                        }
+
+                        $repsValue = (float)$reps;
+                        if ((int)$repsValue !== $repsValue) {
+                            return false;
+                        }
+
+                        if ($repsValue < 0 || $repsValue > $maxExerciseReps) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                },
+                'message' => 'Each named exercise must have whole-number reps between 0 and 1000000.',
             ]);
 
         return $validator;

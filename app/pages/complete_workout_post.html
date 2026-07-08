@@ -114,6 +114,47 @@
         const photoPreviewWrap = document.getElementById('photoPreviewWrap');
         const photoPreview = document.getElementById('photoPreview');
 
+        function buildCompletionPostPayload(nextValues = {}){
+          return {
+            title: String(nextValues.title || post.title || '').trim(),
+            activityType: String(nextValues.activityType || post.activityType || '').trim(),
+            intensity: String(nextValues.intensity || post.intensity || '').trim(),
+            description: String(nextValues.description || post.description || '').trim(),
+            notes: String(nextValues.notes || post.notes || '').trim(),
+            photoDataUrl: String(nextValues.photoDataUrl || post.photoDataUrl || ''),
+            photoName: String(nextValues.photoName || post.photoName || '').trim(),
+            updatedAt: Date.now()
+          };
+        }
+
+        async function syncCompletionPostToWorkout(nextValues = {}){
+          if(!post || !post.workoutId || !window.getAuthToken) return true;
+          const token = window.getAuthToken();
+          if(!token) return true;
+          const payload = buildCompletionPostPayload(nextValues);
+          try {
+            const endpoint = `/api/workouts/${encodeURIComponent(post.workoutId)}`;
+            const methods = ['PUT', 'PATCH', 'POST'];
+            let res = null;
+            for (const method of methods) {
+              res = await fetch(endpoint, {
+                method,
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ data: { completionPost: payload } })
+              });
+              if (res.ok) break;
+              if (![404, 405, 501].includes(res.status)) break;
+            }
+            return res.ok;
+          } catch (e) {
+            return false;
+          }
+        }
+
         function renderPhoto(dataUrl){
           if(dataUrl){
             photoPreview.src = dataUrl;
@@ -156,6 +197,7 @@
               formError.textContent = 'Could not save photo. Try a smaller image.';
               return;
             }
+            void syncCompletionPostToWorkout({ photoDataUrl: dataUrl, photoName: f.name });
             formError.textContent = '';
             post = updated;
             renderPhoto(post.photoDataUrl || '');
@@ -163,7 +205,7 @@
           reader.readAsDataURL(f);
         });
 
-        document.getElementById('postForm').addEventListener('submit', function(ev){
+        document.getElementById('postForm').addEventListener('submit', async function(ev){
           ev.preventDefault();
           const title = String(postTitle.value || '').trim();
           if(!title){
@@ -184,6 +226,16 @@
             formError.textContent = 'Could not save post details.';
             return;
           }
+
+          await syncCompletionPostToWorkout({
+            title,
+            activityType: activityType.value,
+            intensity: intensity.value,
+            description: postDescription.value,
+            notes: postNotes.value,
+            photoDataUrl: post.photoDataUrl || '',
+            photoName: post.photoName || ''
+          });
 
           sessionStorage.removeItem('hc:pendingCompletedPostId');
           window.location.href = '/pages/past_workouts.html';

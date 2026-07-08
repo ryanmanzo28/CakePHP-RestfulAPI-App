@@ -76,9 +76,13 @@ class AuthController extends AppController
                 return $this->response->withStatus(401)->withStringBody(json_encode(['error' => 'Invalid credentials']));
             }
 
+            $now = time();
             $payload = [
                 'sub' => $user->id,
-                'exp' => time() + 3600,
+                'iat' => $now,
+                'exp' => $now + 3600,
+                // Ensure a fresh token value on every login, even if user re-logs quickly.
+                'jti' => bin2hex(random_bytes(16)),
             ];
             $token = \Firebase\JWT\JWT::encode($payload, getenv('JWT_SECRET') ?: 'change_me', 'HS256');
 

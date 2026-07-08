@@ -24,6 +24,7 @@ class WorkoutsController extends AppController
         if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $m)) {
             $token = $m[1];
         }
+        $token = $token ?: $this->request->getData('token') ?: $this->request->getQuery('token');
         if (!$token) {
             return $this->response->withStatus(401)->withType('application/json')
                 ->withStringBody(json_encode(['error' => 'Missing or invalid Authorization header']));
@@ -66,6 +67,89 @@ class WorkoutsController extends AppController
     }
 
     /**
+     * Return a single workout owned by the authenticated user.
+     * URL: GET /api/workouts/:id
+     */
+    public function view($id = null)
+    {
+        $id = (int)$id;
+        if ($id <= 0) {
+            return $this->response->withStatus(400)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid id']));
+        }
+
+        $header = $this->request->getHeaderLine('Authorization');
+        $token = null;
+        if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $m)) {
+            $token = $m[1];
+        }
+        $token = $token ?: $this->request->getData('token') ?: $this->request->getQuery('token');
+        if (!$token) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Missing or invalid Authorization header']));
+        }
+
+        try {
+            $secret = getenv('JWT_SECRET') ?: 'change_me';
+            $payload = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($secret, 'HS256'));
+            $userId = (int)($payload->sub ?? 0);
+            if ($userId <= 0) {
+                return $this->response->withStatus(401)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Invalid token payload']));
+            }
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Token expired']));
+        } catch (\Throwable $e) {
+            return $this->response->withStatus(401)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Invalid token']));
+        }
+
+        try {
+            $workouts = $this->fetchTable('Workouts');
+            try {
+                $entity = $workouts->get($id);
+            } catch (\Throwable $e) {
+                return $this->response->withStatus(404)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Not found']));
+            }
+
+            $record = $this->serializeSessionRecord($entity);
+            $record['isMine'] = ((int)($entity->user_id ?? 0) === $userId);
+            $record['canEdit'] = $record['isMine'];
+
+            return $this->response->withType('application/json')
+                ->withStringBody(json_encode($record));
+        } catch (\Throwable $e) {
+            try {
+                $host = getenv('DB_HOST') ?: 'localhost';
+                $db = getenv('DB_NAME') ?: 'cakephp';
+                $user = getenv('DB_USER') ?: 'root';
+                $pass = getenv('DB_PASS') ?: '';
+                $charset = 'utf8mb4';
+                $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+                $pdo = new \PDO($dsn, $user, $pass, [\PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION]);
+                $stmt = $pdo->prepare('SELECT * FROM workouts WHERE id = :id');
+                $stmt->execute(['id' => $id]);
+                $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                if (!$row) {
+                    return $this->response->withStatus(404)->withType('application/json')
+                        ->withStringBody(json_encode(['error' => 'Not found']));
+                }
+
+                $record = $this->serializeSessionRecord($row);
+                $record['isMine'] = ((int)($row['user_id'] ?? 0) === $userId);
+                $record['canEdit'] = $record['isMine'];
+                return $this->response->withType('application/json')
+                    ->withStringBody(json_encode($record));
+            } catch (\Throwable $_) {
+                return $this->response->withStatus(500)->withType('application/json')
+                    ->withStringBody(json_encode(['error' => 'Failed to load workout']));
+            }
+        }
+    }
+
+    /**
      * Community feed for workouts across users.
      * URL: GET /api/workouts/feed
      */
@@ -74,6 +158,8 @@ class WorkoutsController extends AppController
         // Authentication middleware validates token and attaches jwt payload.
         $jwt = $this->request->getAttribute('jwt');
         $viewerId = (int)($jwt->sub ?? 0);
+        $requestedLimit = (int)$this->request->getQuery('limit', 5000);
+        $limit = max(1, min($requestedLimit, 10000));
 
         try {
             $workoutsTable = $this->fetchTable('Workouts');
@@ -92,14 +178,9 @@ class WorkoutsController extends AppController
                 ])
                 ->contain(['Users'])
                 ->order(['Workouts.created' => 'DESC'])
-                ->limit(300)
+                ->limit($limit)
                 ->all()
                 ->toArray();
-
-            $results = array_values(array_filter($results, function ($w) {
-                return $this->isCompletedWorkoutRecord($w);
-            }));
-            $results = array_slice($results, 0, 100);
 
             $feed = array_map(function ($w) use ($viewerId) {
                 $owner = isset($w->user) ? ($w->user->username ?: $w->user->email) : null;
@@ -116,7 +197,7 @@ class WorkoutsController extends AppController
                 ->withStringBody(json_encode($feed));
         } catch (\Throwable $e) {
             try {
-                $data = $this->pdoQueryCommunityFeed($viewerId);
+                $data = $this->pdoQueryCommunityFeed($viewerId, $limit);
                 return $this->response->withType('application/json')
                     ->withStringBody(json_encode($data));
             } catch (\Throwable $_) {
@@ -143,6 +224,7 @@ class WorkoutsController extends AppController
         if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $m)) {
             $token = $m[1];
         }
+        $token = $token ?: $this->request->getData('token') ?: $this->request->getQuery('token');
         if (!$token) {
             return $this->response->withStatus(401)->withType('application/json')
                 ->withStringBody(json_encode(['error' => 'Missing or invalid Authorization header']));
@@ -282,11 +364,13 @@ class WorkoutsController extends AppController
      */
     public function create()
     {
+        $requestData = $this->readJsonRequestData();
         $header = $this->request->getHeaderLine('Authorization');
         $token = null;
         if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $m)) {
             $token = $m[1];
         }
+        $token = $token ?: ($requestData['token'] ?? null) ?: $this->request->getQuery('token');
         if (!$token) {
             return $this->response->withStatus(401)->withType('application/json')
                 ->withStringBody(json_encode(['error' => 'Missing or invalid Authorization header']));
@@ -308,7 +392,7 @@ class WorkoutsController extends AppController
                 ->withStringBody(json_encode(['error' => 'Invalid token']));
         }
 
-        $data = $this->normalizeSessionInput((array)$this->request->getData());
+        $data = $this->normalizeSessionInput($requestData);
         $title = isset($data['title']) ? trim((string)$data['title']) : '';
         if (!$title) {
             return $this->response->withStatus(400)->withType('application/json')
@@ -420,6 +504,7 @@ class WorkoutsController extends AppController
      */
     public function update($id = null)
     {
+        $requestData = $this->readJsonRequestData();
         $id = (int)$id;
         if ($id <= 0) {
             return $this->response->withStatus(400)->withType('application/json')
@@ -431,6 +516,7 @@ class WorkoutsController extends AppController
         if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $m)) {
             $token = $m[1];
         }
+        $token = $token ?: ($requestData['token'] ?? null) ?: $this->request->getQuery('token');
         if (!$token) {
             return $this->response->withStatus(401)->withType('application/json')
                 ->withStringBody(json_encode(['error' => 'Missing or invalid Authorization header']));
@@ -452,7 +538,11 @@ class WorkoutsController extends AppController
                 ->withStringBody(json_encode(['error' => 'Invalid token']));
         }
 
-        $data = $this->normalizeSessionInput((array)$this->request->getData());
+        $data = $this->normalizeSessionInput($requestData);
+        if (empty($data)) {
+            return $this->response->withStatus(400)->withType('application/json')
+                ->withStringBody(json_encode(['error' => 'Missing request body']));
+        }
         $validationErrors = $this->validateWorkoutPayload($data, false);
         if ($validationErrors) {
             return $this->response->withStatus(400)->withType('application/json')
@@ -491,10 +581,28 @@ class WorkoutsController extends AppController
                 $entity->duration = $data['duration'] !== null ? (string)$data['duration'] : null;
             }
             if (array_key_exists('data', $data)) {
-                if (is_array($data['data'])) {
-                    $data['data']['kind'] = 'session';
+                $existingData = [];
+                if (isset($entity->data) && $entity->data !== null && $entity->data !== '') {
+                    if (is_array($entity->data)) {
+                        $existingData = $entity->data;
+                    } elseif (is_string($entity->data)) {
+                        $decodedExisting = json_decode($entity->data, true);
+                        $existingData = is_array($decodedExisting) ? $decodedExisting : [];
+                    }
                 }
-                $entity->data = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
+
+                if (is_array($data['data'])) {
+                    $incomingData = $data['data'];
+                } elseif (is_string($data['data'])) {
+                    $decodedIncoming = json_decode($data['data'], true);
+                    $incomingData = is_array($decodedIncoming) ? $decodedIncoming : [];
+                } else {
+                    $incomingData = [];
+                }
+
+                $mergedData = array_merge($existingData, $incomingData);
+                $mergedData['kind'] = 'session';
+                $entity->data = json_encode($mergedData);
             }
 
             if ($workouts->save($entity)) {
@@ -546,11 +654,29 @@ class WorkoutsController extends AppController
                     $params['duration'] = $data['duration'] !== null ? (string)$data['duration'] : null;
                 }
                 if (array_key_exists('data', $data)) {
-                    if (is_array($data['data'])) {
-                        $data['data']['kind'] = 'session';
+                    $fetchCurrent = $pdo->prepare('SELECT data FROM workouts WHERE id = :id AND user_id = :uid');
+                    $fetchCurrent->execute(['id' => $id, 'uid' => $userId]);
+                    $currentRow = $fetchCurrent->fetch(\PDO::FETCH_ASSOC) ?: [];
+
+                    $existingData = [];
+                    if (!empty($currentRow['data'])) {
+                        $decodedExisting = json_decode((string)$currentRow['data'], true);
+                        $existingData = is_array($decodedExisting) ? $decodedExisting : [];
                     }
+
+                    if (is_array($data['data'])) {
+                        $incomingData = $data['data'];
+                    } elseif (is_string($data['data'])) {
+                        $decodedIncoming = json_decode($data['data'], true);
+                        $incomingData = is_array($decodedIncoming) ? $decodedIncoming : [];
+                    } else {
+                        $incomingData = [];
+                    }
+
+                    $mergedData = array_merge($existingData, $incomingData);
+                    $mergedData['kind'] = 'session';
                     $set[] = 'data = :data';
-                    $params['data'] = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
+                    $params['data'] = json_encode($mergedData);
                 }
                 if (!$set) {
                     return $this->response->withStatus(400)->withType('application/json')
@@ -699,7 +825,7 @@ class WorkoutsController extends AppController
         }
     }
 
-    protected function pdoQueryCommunityFeed(int $viewerId = 0): array
+    protected function pdoQueryCommunityFeed(int $viewerId = 0, int $limit = 5000): array
     {
         $host = (function_exists('env') ? env('DB_HOST') : getenv('DB_HOST')) ?: 'localhost';
         $db = (function_exists('env') ? env('DB_NAME') : getenv('DB_NAME')) ?: 'cakephp';
@@ -715,18 +841,17 @@ class WorkoutsController extends AppController
 
         try {
             $pdo = new \PDO($dsn, $user, $pass, $options);
+            $safeLimit = max(1, min($limit, 10000));
             $sql = "SELECT w.id, w.user_id, w.title, w.notes, w.date, w.duration, w.data, w.created,
                            COALESCE(u.username, u.email, CONCAT('User #', w.user_id)) AS owner
                     FROM workouts w
                     LEFT JOIN users u ON u.id = w.user_id
                     ORDER BY w.created DESC
-                    LIMIT 100";
-            $stmt = $pdo->query($sql);
+                    LIMIT :limit";
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':limit', $safeLimit, \PDO::PARAM_INT);
+            $stmt->execute();
             $rows = $stmt->fetchAll();
-            $rows = array_values(array_filter($rows, function ($row) {
-                return $this->isCompletedWorkoutRecord($row);
-            }));
-            $rows = array_slice($rows, 0, 100);
             return array_map(function ($row) use ($viewerId) {
                 return array_merge($this->serializeSessionRecord($row), [
                     'owner' => $row['owner'] ?? null,
@@ -757,6 +882,7 @@ class WorkoutsController extends AppController
         }
 
         $dataBlob = [];
+        $hasStructuredData = array_key_exists('data', $data) || isset($data['performedAt']);
         if (array_key_exists('data', $data)) {
             if (is_array($data['data'])) {
                 $dataBlob = $data['data'];
@@ -766,17 +892,65 @@ class WorkoutsController extends AppController
             }
         }
 
-        $dataBlob['kind'] = 'session';
-        if (isset($data['performedAt']) && !isset($dataBlob['completedAt'])) {
-            $dataBlob['completedAt'] = $data['performedAt'];
-            $dataBlob['completed_at'] = $data['performedAt'];
+        if ($hasStructuredData) {
+            $dataBlob['kind'] = 'session';
+            if (isset($data['performedAt']) && !isset($dataBlob['completedAt'])) {
+                $dataBlob['completedAt'] = $data['performedAt'];
+                $dataBlob['completed_at'] = $data['performedAt'];
+            }
         }
 
-        if (!empty($dataBlob)) {
+        if ($hasStructuredData) {
             $data['data'] = $dataBlob;
         }
 
         return $data;
+    }
+
+    protected function readJsonRequestData(): array
+    {
+        $data = (array)$this->request->getData();
+        $parsedBody = $this->request->getParsedBody();
+        if (is_array($parsedBody) && !empty($parsedBody)) {
+            $data = array_merge($parsedBody, $data);
+        }
+
+        try {
+            $inputDecoded = $this->request->input('json_decode', true);
+            if (is_array($inputDecoded) && !empty($inputDecoded)) {
+                $data = array_merge($inputDecoded, $data);
+            }
+        } catch (\Throwable $_) {
+        }
+
+        // Prefer raw input decoding for PUT/PATCH compatibility when framework parsing is inconsistent.
+        $raw = @file_get_contents('php://input');
+        if (is_string($raw) && $raw !== '') {
+            $decoded = json_decode($raw, true);
+            if (is_array($decoded)) {
+                return array_merge($decoded, $data);
+            }
+
+            parse_str($raw, $urlEncoded);
+            if (is_array($urlEncoded) && !empty($urlEncoded)) {
+                return array_merge($urlEncoded, $data);
+            }
+        }
+
+        if (!empty($data)) {
+            return $data;
+        }
+
+        // Fallback to PSR body stream if available.
+        $streamRaw = (string)$this->request->getBody();
+        if ($streamRaw !== '') {
+            $decodedStream = json_decode($streamRaw, true);
+            if (is_array($decodedStream)) {
+                return $decodedStream;
+            }
+        }
+
+        return [];
     }
 
     protected function serializeSessionRecord($record): array

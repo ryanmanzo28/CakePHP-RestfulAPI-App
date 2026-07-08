@@ -49,9 +49,17 @@
       const data = w.data ? (typeof w.data==='string'? JSON.parse(w.data): w.data) : (w.exercises? {exercises:w.exercises, sets:w.sets}: {});
       const preferredUnit = window.getWeightUnit ? window.getWeightUnit() : 'lb';
       const sourceUnit = (data && data.weightUnit) || w.weightUnit || preferredUnit;
+      const distanceSourceUnit = (data && data.distanceUnit) || w.distanceUnit || 'km';
+      function formatDistance(value){
+        if (value === null || value === undefined || value === '') return '';
+        if (window.formatDistanceForDisplay) {
+          return window.formatDistanceForDisplay(value, distanceSourceUnit, (window.getDistanceUnit ? window.getDistanceUnit() : 'km'), { separator: ' ' });
+        }
+        return `${value} ${distanceSourceUnit}`;
+      }
       const list = document.getElementById('detailList');
       if (data.sets) { const d = document.createElement('div'); d.className='small muted'; d.textContent = data.sets + ' sets'; list.appendChild(d); }
-      if (data.distance) { const d = document.createElement('div'); d.className='small muted'; d.textContent = 'Distance: '+data.distance+' km'; list.appendChild(d); }
+      if (data.distance) { const d = document.createElement('div'); d.className='small muted'; d.textContent = 'Distance: ' + formatDistance(data.distance); list.appendChild(d); }
       if (Array.isArray(data.exercises)){
         const ul=document.createElement('ul'); ul.style.marginTop='8px'; data.exercises.forEach(ex=>{ const li=document.createElement('li'); li.textContent = ex.name + (ex.reps? ' • '+ex.reps+' reps':'') + (ex.weight? ` • ${window.formatWeightForDisplay ? window.formatWeightForDisplay(ex.weight, sourceUnit, preferredUnit, { separator: '' }) : `${ex.weight}${sourceUnit || ''}`}` : ''); ul.appendChild(li); }); list.appendChild(ul);
       }
