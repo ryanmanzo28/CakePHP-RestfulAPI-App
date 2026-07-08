@@ -36,7 +36,7 @@
                         <input id="password" name="password" type="password" required placeholder="••••••••" autocomplete="current-password" />
                     </div>
 
-                    <div class="row-between" style="margin-top:8px;">
+                    <div class="row-between login-meta-row">
                         <label class="small"><input type="checkbox" id="remember" /> Remember me</label>
                         <a class="small muted" href="#">Forgot?</a>
                     </div>
@@ -60,6 +60,23 @@
             document.addEventListener('DOMContentLoaded', function () {
                 const form = document.getElementById('loginForm');
                 const err = document.getElementById('loginError');
+                const rememberCheckbox = document.getElementById('remember');
+                const REMEMBER_KEY = 'hc:rememberMe';
+                const REMEMBERED_EMAIL_KEY = 'hc:rememberedEmail';
+
+                try {
+                    const shouldRemember = localStorage.getItem(REMEMBER_KEY) === '1';
+                    rememberCheckbox.checked = shouldRemember;
+                    if (shouldRemember) {
+                        const rememberedEmail = localStorage.getItem(REMEMBERED_EMAIL_KEY) || '';
+                        if (rememberedEmail) {
+                            document.getElementById('email').value = rememberedEmail;
+                        }
+                    }
+                } catch (e) {
+                    // ignore storage read errors
+                }
+
                 form.addEventListener('submit', async function (ev) {
                     ev.preventDefault();
                     err.textContent = '';
@@ -91,10 +108,37 @@
                         }
 
                         if (data.token) {
-                            // Store JWT and the client-side SHA (used for legacy API requests)
-                            localStorage.setItem('jwt', data.token);
-                            localStorage.setItem('username', email);
-                            localStorage.setItem('passwordHash', hashed);
+                            const rememberMe = !!(rememberCheckbox && rememberCheckbox.checked);
+
+                            if (window.setAuthSession) {
+                                window.setAuthSession({
+                                    token: data.token,
+                                    username: normalizedEmail,
+                                    passwordHash: hashed,
+                                    rememberMe,
+                                });
+                            } else {
+                                const primary = rememberMe ? localStorage : sessionStorage;
+                                const secondary = rememberMe ? sessionStorage : localStorage;
+                                primary.setItem('jwt', data.token);
+                                primary.setItem('username', normalizedEmail);
+                                primary.setItem('passwordHash', hashed);
+                                secondary.removeItem('jwt');
+                                secondary.removeItem('username');
+                                secondary.removeItem('passwordHash');
+                            }
+
+                            try {
+                                localStorage.setItem(REMEMBER_KEY, rememberMe ? '1' : '0');
+                                if (rememberMe) {
+                                    localStorage.setItem(REMEMBERED_EMAIL_KEY, normalizedEmail);
+                                } else {
+                                    localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+                                }
+                            } catch (e) {
+                                // ignore storage write errors
+                            }
+
                             // Redirect to dashboard page (same directory)
                             window.location.href = '/pages/dashboard.html';
                         } else {

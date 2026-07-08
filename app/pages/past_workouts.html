@@ -51,7 +51,7 @@
     <script src="../main.js"></script>
     <script>
     (function(){
-      const token = localStorage.getItem('jwt') || '';
+      const token = (window.getAuthToken && window.getAuthToken()) || localStorage.getItem('jwt') || sessionStorage.getItem('jwt') || '';
       if(!token){ window.location.href = '/pages/login.html'; return; }
 
       const FEED_CACHE_TTL_MS = 60000;
@@ -80,7 +80,7 @@
         listEl.replaceChildren(loading);
       }
 
-      if (usernameEl) usernameEl.textContent = localStorage.getItem('username') || '';
+      if (usernameEl) usernameEl.textContent = (window.getStoredUsername && window.getStoredUsername()) || localStorage.getItem('username') || sessionStorage.getItem('username') || '';
       if (backDashBtn) backDashBtn.addEventListener('click', function(){ window.location.href='/pages/dashboard.html'; });
       const profileClose = document.getElementById('profileClose');
       if (profileClose) profileClose.addEventListener('click', closeProfileModal);
@@ -92,7 +92,7 @@
       async function loadCommunityFeed(forceRefresh){
         const useCache = !forceRefresh && communityFeedFetchedAt && (Date.now() - communityFeedFetchedAt < FEED_CACHE_TTL_MS);
         if (useCache) return communityFeedCache;
-        const jwt = localStorage.getItem('jwt') || '';
+        const jwt = (window.getAuthToken && window.getAuthToken()) || localStorage.getItem('jwt') || sessionStorage.getItem('jwt') || '';
         if(!jwt) return [];
         try {
           const res = await fetch('/api/workouts/feed', {
@@ -126,7 +126,7 @@
           kind: 'mine',
           createdAt: p.created || Date.now(),
           title: p.title || 'Completed Workout',
-          owner: p.owner || localStorage.getItem('username') || 'You',
+          owner: p.owner || ((window.getStoredUsername && window.getStoredUsername()) || localStorage.getItem('username') || sessionStorage.getItem('username') || 'You'),
           ownerId: 'me',
           workoutTitle: p.workoutTitle || '',
           summary: p.summary || {},

@@ -87,10 +87,43 @@
 
       // exercises
       const exList = document.getElementById('cwExercisesList');
+      let loadedWorkoutWeightUnit = null;
+      let currentWeightUnit = (window.getWeightUnit ? window.getWeightUnit() : localStorage.getItem('hc:weightUnit')) || 'lb';
       const exerciseSuggestions = ['Squat','Bench Press','Deadlift','Pull-up','Push-up','Overhead Press','Row','Lunge','Plank','Burpee','Sprint','Cycling'];
       // create datalist for suggestions
       const dl = document.createElement('datalist'); dl.id = 'exSuggestions'; exerciseSuggestions.forEach(s=>{ const o = document.createElement('option'); o.value = s; dl.appendChild(o); }); document.body.appendChild(dl);
-      function addExercise(data){
+      function normalizeUnit(unit){ return unit === 'kg' ? 'kg' : 'lb'; }
+      function formatConvertedInputWeight(value, sourceUnit, targetUnit){
+        if (value === null || value === undefined || value === '') return '';
+        if (window.convertWeightValue) {
+          const converted = window.convertWeightValue(value, sourceUnit, targetUnit);
+          if (converted !== null) {
+            return Math.abs(converted - Math.round(converted)) > 0.05 ? converted.toFixed(1) : String(Math.round(converted));
+          }
+        }
+        return String(value);
+      }
+      function getSelectedWeightUnit(){
+        const weightUnitEl = document.getElementById('weightUnit');
+        return normalizeUnit((weightUnitEl && weightUnitEl.value) || currentWeightUnit || 'lb');
+      }
+      function updateWeightInputMetadata(unit){
+        Array.from(exList.querySelectorAll('.ex-weight')).forEach((input) => {
+          input.placeholder = `Weight (${unit})`;
+          input.setAttribute('aria-label', `Weight in ${unit}`);
+        });
+      }
+      function convertExerciseWeightInputs(fromUnit, toUnit){
+        const normalizedFrom = normalizeUnit(fromUnit);
+        const normalizedTo = normalizeUnit(toUnit);
+        Array.from(exList.querySelectorAll('.ex-weight')).forEach((input) => {
+          if (input.value !== '') {
+            input.value = formatConvertedInputWeight(input.value, normalizedFrom, normalizedTo);
+          }
+        });
+        updateWeightInputMetadata(normalizedTo);
+      }
+      function addExercise(data, sourceWeightUnit){
         const row = document.createElement('div'); row.className = 'cw-ex-row';
         const n = document.createElement('input'); n.className = 'ex-name'; n.placeholder = 'Exercise name'; n.setAttribute('list','exSuggestions'); n.value = (data && data.name) ? data.name : ''; n.setAttribute('aria-label','Exercise name');
         const r = document.createElement('input'); r.className = 'ex-reps'; r.type = 'number'; r.placeholder = 'Reps'; r.value = (data && data.reps) ? data.reps : ''; r.setAttribute('aria-label','Reps');
@@ -98,7 +131,11 @@
         // if current type is Strength, add weight input
         const curType = (document.getElementById('type') || {}).value || '';
         if (curType === 'Strength') {
-          const w = document.createElement('input'); w.className = 'ex-weight'; w.type = 'number'; w.step = '0.5'; w.placeholder = 'Weight'; w.value = (data && data.weight) ? data.weight : ''; w.setAttribute('aria-label','Weight'); row.appendChild(w);
+          const targetWeightUnit = getSelectedWeightUnit();
+          const initialWeight = (data && data.weight !== undefined && data.weight !== null && data.weight !== '')
+            ? formatConvertedInputWeight(data.weight, sourceWeightUnit || loadedWorkoutWeightUnit || targetWeightUnit, targetWeightUnit)
+            : '';
+          const w = document.createElement('input'); w.className = 'ex-weight'; w.type = 'number'; w.step = '0.5'; w.placeholder = `Weight (${targetWeightUnit})`; w.value = initialWeight; w.setAttribute('aria-label', `Weight in ${targetWeightUnit}`); row.appendChild(w);
         }
         const rem = document.createElement('button'); rem.type = 'button'; rem.className = 'btn small'; rem.textContent = 'Remove'; rem.setAttribute('aria-label','Remove exercise'); rem.addEventListener('click', () => { row.remove(); updatePreview(); });
         row.appendChild(rem);
@@ -138,9 +175,10 @@
           const lblU = document.createElement('label'); lblU.className='cw-label'; lblU.textContent='Weight unit';
           const sel = document.createElement('select'); sel.id='weightUnit'; sel.className='cw-input'; ['kg','lb'].forEach(u=>{ const o=document.createElement('option'); o.value=u; o.textContent=u; sel.appendChild(o); });
           // preselect user preference if available
-          try{ const pref = window.getWeightUnit ? window.getWeightUnit() : localStorage.getItem('hc:weightUnit'); if(pref) sel.value = pref; }catch(e){}
-          sel.addEventListener('change', function(){ try{ if(window.setWeightUnit) window.setWeightUnit(this.value); }catch(e){} });
+          try{ const pref = normalizeUnit(window.getWeightUnit ? window.getWeightUnit() : localStorage.getItem('hc:weightUnit')); if(pref) { sel.value = pref; currentWeightUnit = pref; } }catch(e){}
+          sel.addEventListener('change', function(){ const nextUnit = normalizeUnit(this.value); const prevUnit = currentWeightUnit; currentWeightUnit = nextUnit; convertExerciseWeightInputs(prevUnit, nextUnit); try{ if(window.setWeightUnit) window.setWeightUnit(nextUnit); else localStorage.setItem('hc:weightUnit', nextUnit); }catch(e){} updatePreview(); });
           typeFields.appendChild(lblU); typeFields.appendChild(sel);
+          updateWeightInputMetadata(currentWeightUnit);
         } else {
           // other types: keep default fields
         }
@@ -251,13 +289,12 @@
           if(sel.sets !== undefined && sel.sets !== null) { try{ document.getElementById('sets').value = String(sel.sets); }catch(e){} }
           // distance
           if(sel.distance !== undefined && (document.getElementById('distance')||{}).id){ try{ document.getElementById('distance').value = sel.distance; }catch(e){} }
-          // weight unit preference in workout data or user preference (renderTypeFields already tried pref)
-          try{ const weightUnitEl = document.getElementById('weightUnit'); const wUnit = (sel.data && sel.data.weightUnit) || sel.weightUnit; if(weightUnitEl && wUnit) weightUnitEl.value = wUnit; }catch(e){}
+          loadedWorkoutWeightUnit = (sel.data && sel.data.weightUnit) || sel.weightUnit || null;
           // exercises: clear current list and add from data
           const exData = (sel.data && Array.isArray(sel.data.exercises)) ? sel.data.exercises : (Array.isArray(sel.exercises)? sel.exercises : []);
           exList.innerHTML = '';
           if(Array.isArray(exData) && exData.length){
-            for(const ex of exData){ addExercise(ex); }
+            for(const ex of exData){ addExercise(ex, loadedWorkoutWeightUnit); }
           } else {
             // no exercises in selected workout — keep one empty row
             addExercise();

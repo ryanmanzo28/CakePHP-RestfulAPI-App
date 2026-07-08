@@ -1,8 +1,37 @@
 
+function getAuthToken() {
+    return localStorage.getItem('jwt') || sessionStorage.getItem('jwt') || '';
+}
+
+function getStoredUsername() {
+    return localStorage.getItem('username') || sessionStorage.getItem('username') || '';
+}
+
+function clearAuthStorage() {
+    const keys = ['jwt', 'username', 'passwordHash'];
+    keys.forEach((key) => {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+    });
+}
+
+function setAuthSession({ token, username, passwordHash, rememberMe }) {
+    const primary = rememberMe ? localStorage : sessionStorage;
+    const secondary = rememberMe ? sessionStorage : localStorage;
+
+    primary.setItem('jwt', token || '');
+    primary.setItem('username', username || '');
+    primary.setItem('passwordHash', passwordHash || '');
+
+    secondary.removeItem('jwt');
+    secondary.removeItem('username');
+    secondary.removeItem('passwordHash');
+}
+
 async function init() {
     console.log("Workout Tracker initialized.");
 
-    const token = localStorage.getItem("jwt") ?? '';
+    const token = getAuthToken();
     const pathname = window.location.pathname || '';
     const isLoginPage = pathname.endsWith('login.html') || pathname.endsWith('register.html');
     const isDashboardPage = pathname.endsWith('dashboard.html');
@@ -51,9 +80,65 @@ const APP_SETTINGS_KEY = 'hc:settings';
 const DEFAULT_APP_SETTINGS = Object.freeze({
     weightUnit: 'lb',
 });
+const LB_TO_KG = 0.45359237;
 
 function normalizeWeightUnit(unit) {
     return unit === 'kg' ? 'kg' : 'lb';
+}
+
+function parseWeightNumber(value) {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    const normalized = String(value).trim().replace(/,/g, '');
+    if (!normalized) {
+        return null;
+    }
+
+    const parsed = Number.parseFloat(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function convertWeightValue(value, sourceUnit, targetUnit) {
+    const parsed = parseWeightNumber(value);
+    if (parsed === null) {
+        return null;
+    }
+
+    const normalizedSource = normalizeWeightUnit(sourceUnit);
+    const normalizedTarget = normalizeWeightUnit(targetUnit);
+    if (normalizedSource === normalizedTarget) {
+        return parsed;
+    }
+
+    return normalizedSource === 'lb' ? (parsed * LB_TO_KG) : (parsed / LB_TO_KG);
+}
+
+function formatWeightForDisplay(value, sourceUnit, targetUnit = getWeightUnit(), options = {}) {
+    if (value === null || value === undefined || value === '') {
+        return '';
+    }
+
+    const normalizedTarget = normalizeWeightUnit(targetUnit || getWeightUnit());
+    const normalizedSource = normalizeWeightUnit(sourceUnit || normalizedTarget);
+    const converted = convertWeightValue(value, normalizedSource, normalizedTarget);
+    const separator = Object.prototype.hasOwnProperty.call(options, 'separator') ? String(options.separator) : '';
+    let formattedValue = '';
+
+    if (converted === null) {
+        formattedValue = String(value).trim();
+    } else {
+        formattedValue = Math.abs(converted - Math.round(converted)) > 0.05
+            ? converted.toFixed(1)
+            : String(Math.round(converted));
+    }
+
+    if (options.appendUnit === false) {
+        return formattedValue;
+    }
+
+    return `${formattedValue}${separator}${normalizedTarget}`;
 }
 
 function getAppSettings() {
@@ -119,7 +204,7 @@ async function loadWorkouts(options = {}) {
        return workoutsCacheData.slice();
    }
 
-   const token = localStorage.getItem('jwt') || '';
+    const token = getAuthToken();
    if (!token) {
        throw new Error('Not authenticated');
    }
@@ -164,7 +249,7 @@ async function loadWorkouts(options = {}) {
    }
 }
 async function loginCheck() {
-    const token = localStorage.getItem("jwt");
+    const token = getAuthToken();
 
     if (!token) {
         window.location.href = "/pages/login.html";
@@ -182,14 +267,14 @@ async function loginCheck() {
     });
 
     if (!response.ok) {
-        localStorage.removeItem('jwt');
+        clearAuthStorage();
         window.location.href = "/pages/login.html";
         return;
     }
 
     const data = await response.json().catch(() => null);
     if (!data || !data.valid) {
-        localStorage.removeItem('jwt');
+        clearAuthStorage();
         window.location.href = "/pages/login.html";
     }
 }
@@ -247,7 +332,7 @@ async function createAccount(username, email, password) {
  * Returns the created workout object and throws on failure.
  */
 async function addWorkout({ title, date, duration, notes, type, sets, exercises, distance, weightUnit } = {}) {
-    const token = localStorage.getItem('jwt') || '';
+    const token = getAuthToken();
     if (!token) throw new Error('Not authenticated');
 
     // normalize duration: accept either a number (minutes) or a string.
@@ -326,12 +411,14 @@ window.getAppSettings = getAppSettings;
 window.setAppSettings = setAppSettings;
 window.getWeightUnit = getWeightUnit;
 window.setWeightUnit = setWeightUnit;
+window.convertWeightValue = convertWeightValue;
+window.formatWeightForDisplay = formatWeightForDisplay;
 
 /**
  * Update an existing workout by id. Returns the updated workout object on success.
  */
 async function updateWorkout(id, { title, date, duration, notes, type, sets, exercises, distance, weightUnit } = {}){
-    const token = localStorage.getItem('jwt') || '';
+    const token = getAuthToken();
     if(!token) throw new Error('Not authenticated');
 
     function formatDurationValue(d) {
@@ -385,7 +472,7 @@ window.updateWorkout = updateWorkout;
  * Delete a workout by id via the API. Returns true on success; throws on failure.
  */
 async function deleteWorkout(id) {
-    const token = localStorage.getItem('jwt') || '';
+    const token = getAuthToken();
     if (!token) throw new Error('Not authenticated');
     const res = await fetch(`/api/workouts/${encodeURIComponent(id)}`, {
         method: 'DELETE',
@@ -416,7 +503,7 @@ window.deleteWorkout = deleteWorkout;
  * Returns the saved session object (or local fallback object) on success.
  */
 async function completeWorkout(workoutId, summary = {}){
-    const token = localStorage.getItem('jwt') || '';
+    const token = getAuthToken();
     const payload = Object.assign({}, summary, { workoutId });
     const normalizedWorkoutId = Number.parseInt(String(workoutId), 10);
     const hasNumericWorkoutId = Number.isFinite(normalizedWorkoutId) && normalizedWorkoutId > 0;
@@ -498,7 +585,7 @@ function saveCompletedPosts(posts) {
 
 function createCompletedPost({ title, workoutTitle, workoutId, summary } = {}) {
     const now = Date.now();
-    const owner = localStorage.getItem('username') || 'You';
+    const owner = getStoredUsername() || 'You';
     const post = {
         id: `post-${now}`,
         title: title || workoutTitle || 'Completed Workout',
@@ -568,3 +655,7 @@ window.createCompletedPost = createCompletedPost;
 window.updateCompletedPost = updateCompletedPost;
 window.renameCompletedPost = renameCompletedPost;
 window.deleteCompletedPost = deleteCompletedPost;
+window.getAuthToken = getAuthToken;
+window.getStoredUsername = getStoredUsername;
+window.clearAuthStorage = clearAuthStorage;
+window.setAuthSession = setAuthSession;

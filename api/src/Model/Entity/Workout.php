@@ -7,7 +7,14 @@ use Cake\ORM\Entity;
 class Workout extends Entity
 {
     protected array $_accessible = [
-        '*' => true,
         'id' => false,
+        'user_id' => false,
+        'title' => true,
+        'notes' => true,
+        'date' => true,
+        'duration' => true,
+        'data' => true,
+        'created' => true,
+        'modified' => true,
     ];
 }

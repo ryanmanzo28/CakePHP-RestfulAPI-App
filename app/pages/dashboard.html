@@ -132,8 +132,8 @@
         <script src="../main.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', async function () {
-                const token = localStorage.getItem('jwt') ?? '';
-                const username = localStorage.getItem('username') || '';
+                const token = (window.getAuthToken && window.getAuthToken()) || localStorage.getItem('jwt') || sessionStorage.getItem('jwt') || '';
+                const username = (window.getStoredUsername && window.getStoredUsername()) || localStorage.getItem('username') || sessionStorage.getItem('username') || '';
                 if (!token) {
                     window.location.href = '/pages/login.html';
                     return;
@@ -141,9 +141,16 @@
 
                 document.getElementById('username').textContent = username;
                 document.getElementById('logout').addEventListener('click', function () {
-                    localStorage.removeItem('jwt');
-                    localStorage.removeItem('username');
-                    localStorage.removeItem('passwordHash');
+                    if (window.clearAuthStorage) {
+                        window.clearAuthStorage();
+                    } else {
+                        localStorage.removeItem('jwt');
+                        localStorage.removeItem('username');
+                        localStorage.removeItem('passwordHash');
+                        sessionStorage.removeItem('jwt');
+                        sessionStorage.removeItem('username');
+                        sessionStorage.removeItem('passwordHash');
+                    }
                     window.location.href = '/pages/login.html';
                 });
 
@@ -281,7 +288,9 @@
                                     }
                                     if (Array.isArray(dd.exercises) && dd.exercises.length) {
                                         const ul = document.createElement('ul'); ul.style.margin='8px 0 0'; ul.className='cw-ex-list';
-                                        dd.exercises.slice(0,6).forEach(ex => { const li = document.createElement('li'); li.textContent = ex.name + (ex.reps ? ` • ${ex.reps} reps` : '') + (ex.weight ? ` • ${ex.weight}${dd.weightUnit||''}` : ''); ul.appendChild(li); });
+                                        const preferredUnit = window.getWeightUnit ? window.getWeightUnit() : 'lb';
+                                        const sourceUnit = (dd && dd.weightUnit) || preferredUnit;
+                                        dd.exercises.slice(0,6).forEach(ex => { const li = document.createElement('li'); li.textContent = ex.name + (ex.reps ? ` • ${ex.reps} reps` : '') + (ex.weight ? ` • ${window.formatWeightForDisplay ? window.formatWeightForDisplay(ex.weight, sourceUnit, preferredUnit, { separator: '' }) : `${ex.weight}${sourceUnit || ''}`}` : ''); ul.appendChild(li); });
                                         card.appendChild(ul);
                                     }
                                 }
@@ -450,7 +459,9 @@
                     if(dd.sets) { const e=document.createElement('div'); e.className='small muted'; e.textContent = dd.sets + ' sets'; details.appendChild(e); }
                     if(dd.distance) { const e=document.createElement('div'); e.className='small muted'; e.textContent = 'Distance: '+dd.distance+' km'; details.appendChild(e); }
                     if(Array.isArray(dd.exercises)){
-                        const ul = document.createElement('ul'); ul.style.marginTop='8px'; dd.exercises.forEach(ex=>{ const li=document.createElement('li'); li.textContent = ex.name + (ex.reps? ' • '+ex.reps+' reps':'') + (ex.weight? ' • '+ex.weight+(dd.weightUnit||''):''); ul.appendChild(li); }); details.appendChild(ul);
+                        const preferredUnit = window.getWeightUnit ? window.getWeightUnit() : 'lb';
+                        const sourceUnit = (dd && dd.weightUnit) || preferredUnit;
+                        const ul = document.createElement('ul'); ul.style.marginTop='8px'; dd.exercises.forEach(ex=>{ const li=document.createElement('li'); li.textContent = ex.name + (ex.reps? ' • '+ex.reps+' reps':'') + (ex.weight? ` • ${window.formatWeightForDisplay ? window.formatWeightForDisplay(ex.weight, sourceUnit, preferredUnit, { separator: '' }) : `${ex.weight}${sourceUnit || ''}`}`:''); ul.appendChild(li); }); details.appendChild(ul);
                     }
                     // animate modal from the clicked card's center
                     modal.setAttribute('aria-hidden','false');

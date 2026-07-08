@@ -81,9 +81,9 @@
     <script src="../main.js"></script>
     <script>
     (function(){
-      const token = localStorage.getItem('jwt')||'';
+      const token = (window.getAuthToken && window.getAuthToken()) || localStorage.getItem('jwt') || sessionStorage.getItem('jwt') || '';
       if(!token){ window.location.href='/pages/login.html'; return; }
-      document.getElementById('username').textContent = localStorage.getItem('username')||'';
+      document.getElementById('username').textContent = (window.getStoredUsername && window.getStoredUsername()) || localStorage.getItem('username') || sessionStorage.getItem('username') || '';
 
       const raw = sessionStorage.getItem('hc:currentWorkout');
       let workout = null;
@@ -98,6 +98,8 @@
       const data = workout.data ? (typeof workout.data==='string'? JSON.parse(workout.data): workout.data) : { exercises: workout.exercises || [], sets: workout.sets || workout.sets || 1 };
       const exercises = Array.isArray(data.exercises) && data.exercises.length ? data.exercises.slice() : (workout.exercises || []);
       const totalSets = parseInt(data.sets || workout.sets || 1, 10) || 1;
+      const preferredWeightUnit = window.getWeightUnit ? window.getWeightUnit() : 'lb';
+      const sourceWeightUnit = (data && data.weightUnit) || workout.weightUnit || preferredWeightUnit;
 
       const exerciseList = document.getElementById('exerciseList');
       let curSet = 1;
@@ -109,7 +111,8 @@
           const row = document.createElement('div'); row.className='workout-card'; row.style.display='flex'; row.style.justifyContent='space-between'; row.style.alignItems='center';
           const idxBadge = document.createElement('div'); idxBadge.className = 'index'; idxBadge.textContent = String(idx+1);
           row.appendChild(idxBadge);
-          const left = document.createElement('div'); left.style.flex='1'; left.innerHTML = `<strong>${ex.name || 'Exercise'}</strong><div class="small muted">${ex.reps? ex.reps + ' reps':''}${ex.weight? ' • '+ex.weight : ''}</div>`;
+          const displayWeight = ex.weight ? (window.formatWeightForDisplay ? window.formatWeightForDisplay(ex.weight, sourceWeightUnit, preferredWeightUnit, { separator: '' }) : `${ex.weight}${sourceWeightUnit || ''}`) : '';
+          const left = document.createElement('div'); left.style.flex='1'; left.innerHTML = `<strong>${ex.name || 'Exercise'}</strong><div class="small muted">${ex.reps? ex.reps + ' reps':''}${displayWeight ? ' • '+displayWeight : ''}</div>`;
           row.appendChild(left);
           const right = document.createElement('div');
           // Done button to mark this exercise complete and advance
@@ -259,7 +262,8 @@
         // update current exercise panel
         const cur = exercises[curIdx] || { name: 'Rest' };
         curName.textContent = cur.name || 'Exercise';
-        curMeta.textContent = (cur.reps? cur.reps+' reps' : '') + (cur.weight? ' • '+cur.weight : '');
+        const displayWeight = cur.weight ? (window.formatWeightForDisplay ? window.formatWeightForDisplay(cur.weight, sourceWeightUnit, preferredWeightUnit, { separator: '' }) : `${cur.weight}${sourceWeightUnit || ''}`) : '';
+        curMeta.textContent = (cur.reps? cur.reps+' reps' : '') + (displayWeight ? ' • '+displayWeight : '');
         // highlight current exercise
         Array.from(exerciseList.children).forEach((row, idx)=>{ const dot = row.querySelector('.dot'); if(dot){ dot.style.background = idx===curIdx ? 'var(--accent-2)' : '#e9eefc'; } const done = (sessionState.curSet > 1) || (idx < curIdx); row.classList.toggle('current', idx===curIdx); row.classList.toggle('done', !!done); });
         // ensure current exercise is visible

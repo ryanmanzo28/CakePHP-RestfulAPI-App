@@ -120,9 +120,9 @@ body.auth-page {
 
 .login-form .field{ margin-top:12px }
 .login-form label{ display:block;font-size:0.85rem;color:var(--muted);margin-bottom:8px }
-.login-form input{ width:100%;padding:12px 14px;border-radius:10px;border:1px solid #e9e9f5;background:#fbfbff;font-size:1rem;transition:box-shadow .15s ease,border-color .15s ease }
-.login-form input::placeholder{ color:#9697ba }
-.login-form input:focus{ outline:none;box-shadow:0 6px 18px rgba(91,43,255,0.12);border-color:var(--accent) }
+.login-form input:not([type="checkbox"]){ width:100%;padding:12px 14px;border-radius:10px;border:1px solid #e9e9f5;background:#fbfbff;font-size:1rem;transition:box-shadow .15s ease,border-color .15s ease }
+.login-form input:not([type="checkbox"])::placeholder{ color:#9697ba }
+.login-form input:not([type="checkbox"]):focus{ outline:none;box-shadow:0 6px 18px rgba(91,43,255,0.12);border-color:var(--accent) }
 
 .actions{ margin-top:var(--space-md);display:flex;justify-content:flex-end }
 .btn{ padding:9px 14px;border-radius:10px;border:none;cursor:pointer;font-weight:700;letter-spacing:0.2px }
@@ -314,6 +314,9 @@ body.dashboard-page .feed-card {
 .row-between{ align-items:center }
 .small{ font-size:0.85rem;color:var(--muted) }
 .small input{ margin-right:8px }
+.login-meta-row{ margin-top:10px; gap:14px; flex-wrap:wrap }
+.login-meta-row .small{ display:inline-flex; align-items:center; line-height:1.2 }
+.login-meta-row #remember{ width:16px; height:16px; margin:0 8px 0 0; accent-color:var(--accent) }
 .muted{ color:var(--muted);text-decoration:none }
 .muted:hover{ text-decoration:underline }
 .divider{ height:1px;background:#f3f4fb;margin:14px 0 }
@@ -847,7 +850,9 @@ body.dashboard-page .dash-hero-card::before {
   top: -70px;
   right: -30px;
   background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.05) 55%, rgba(255, 255, 255, 0) 72%);
-  animation: dashHeroGlowDriftA 14s ease-in-out infinite;
+  animation: dashHeroGlowDriftA 14s linear infinite;
+  pointer-events: none;
+  mix-blend-mode: screen;
 }
 
 body.dashboard-page .dash-hero-card::after {
@@ -882,7 +887,11 @@ body.dashboard-page .dash-hero-card > * {
 
 @keyframes dashHeroCardBreath {
   0% { filter: brightness(1) saturate(1); }
+  25% { filter: brightness(1.03) saturate(1.03); }
+  35% { filter: brightness(1.05) saturate(1.05); }
   50% { filter: brightness(1.065) saturate(1.06); }
+  75% { filter: brightness(1.03) saturate(1.03); }
+  85% { filter: brightness(1.03) saturate(1.03); }
   100% { filter: brightness(1) saturate(1); }
 }
 
@@ -1397,6 +1406,33 @@ body.dashboard-page .settings-radio-row input {
   accent-color: var(--accent);
 }
 
+@keyframes addWorkoutButtonPress {
+  25% {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: brightness(1.1);
+
+  }
+  50% {
+    opacity: 0;
+    transform: translateY(4px);
+    filter: brightness(1.05);
+  }
+  75% {
+    opacity: 0;
+    transform: translateY(2px);
+    filter: brightness(1.02);
+  }
+  90% {
+    opacity: 0;
+    transform: translateY(1px);
+    filter: brightness(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 body.dashboard-page #addWorkout {
   position: fixed !important;
   right: 20px !important;
@@ -1417,11 +1453,12 @@ body.dashboard-page #addWorkout {
 
 body.dashboard-page #addWorkout:hover {
   transform: translateY(-2px);
-  filter: brightness(1.06);
+  filter: brightness(1.1);
 }
 
 body.dashboard-page #addWorkout:active {
   transform: translateY(0) scale(0.97);
+  animation: addWorkoutButtonPress .28s ease both;
 }
 
 body.dashboard-page #addWorkout:focus-visible {

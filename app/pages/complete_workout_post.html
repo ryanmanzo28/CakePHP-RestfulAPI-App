@@ -83,10 +83,10 @@
     <script src="../main.js"></script>
     <script>
       (function(){
-        const token = localStorage.getItem('jwt') || '';
+        const token = (window.getAuthToken && window.getAuthToken()) || localStorage.getItem('jwt') || sessionStorage.getItem('jwt') || '';
         if(!token){ window.location.href = '/pages/login.html'; return; }
 
-        document.getElementById('username').textContent = localStorage.getItem('username') || '';
+        document.getElementById('username').textContent = (window.getStoredUsername && window.getStoredUsername()) || localStorage.getItem('username') || sessionStorage.getItem('username') || '';
 
         const params = new URLSearchParams(window.location.search);
         const queryId = params.get('postId');
