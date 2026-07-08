@@ -51,13 +51,13 @@ class WorkoutsController extends AppController
             $query = $workoutsTable->find()->where(['user_id' => $userId]);
             $results = $query->all()->toArray();
             return $this->response->withType('application/json')
-                ->withStringBody(json_encode($results));
+                ->withStringBody(json_encode(array_map([$this, 'serializeSessionRecord'], $results)));
         } catch (\Throwable $e) {
             // PDO fallback by user id
             try {
                 $data = $this->pdoQueryWorkoutsByUserId($userId);
                 return $this->response->withType('application/json')
-                    ->withStringBody(json_encode($data));
+                    ->withStringBody(json_encode(array_map([$this, 'serializeSessionRecord'], $data)));
             } catch (\Throwable $_) {
                 return $this->response->withStatus(500)->withType('application/json')
                     ->withStringBody(json_encode(['error' => 'Failed to load workouts']));
@@ -106,18 +106,10 @@ class WorkoutsController extends AppController
                 if (!$owner) {
                     $owner = isset($w->users__username) && $w->users__username ? (string)$w->users__username : (isset($w->users__email) ? (string)$w->users__email : ('User #' . (string)$w->user_id));
                 }
-                return [
-                    'id' => $w->id,
-                    'user_id' => $w->user_id,
+                return array_merge($this->serializeSessionRecord($w), [
                     'owner' => $owner,
-                    'title' => $w->title,
-                    'notes' => $w->notes,
-                    'date' => $w->date,
-                    'duration' => $w->duration,
-                    'data' => $w->data,
-                    'created' => $w->created,
                     'isMine' => $viewerId > 0 ? ((int)$w->user_id === $viewerId) : false,
-                ];
+                ]);
             }, $results);
 
             return $this->response->withType('application/json')
@@ -172,7 +164,7 @@ class WorkoutsController extends AppController
                 ->withStringBody(json_encode(['error' => 'Invalid token']));
         }
 
-        $payloadData = $this->request->getData();
+        $payloadData = $this->normalizeSessionInput((array)$this->request->getData());
         $completedAt = gmdate('Y-m-d H:i:s');
 
         try {
@@ -209,6 +201,7 @@ class WorkoutsController extends AppController
             }
 
             $nextData = array_merge($currentData, [
+                'kind' => 'session',
                 'completed' => true,
                 'completedAt' => $completedAt,
                 'completed_at' => $completedAt,
@@ -220,7 +213,7 @@ class WorkoutsController extends AppController
 
             if ($workouts->save($entity)) {
                 return $this->response->withType('application/json')
-                    ->withStringBody(json_encode($entity));
+                    ->withStringBody(json_encode($this->serializeSessionRecord($entity)));
             }
             throw new \RuntimeException('Failed to mark workout complete');
         } catch (\Throwable $e) {
@@ -257,6 +250,7 @@ class WorkoutsController extends AppController
                 }
 
                 $nextData = array_merge($currentData, [
+                    'kind' => 'session',
                     'completed' => true,
                     'completedAt' => $completedAt,
                     'completed_at' => $completedAt,
@@ -274,7 +268,7 @@ class WorkoutsController extends AppController
                 $fetch2 = $pdo->prepare('SELECT * FROM workouts WHERE id = :id AND user_id = :uid');
                 $fetch2->execute(['id' => $id, 'uid' => $userId]);
                 $updated = $fetch2->fetch(\PDO::FETCH_ASSOC) ?: ['id' => $id];
-                return $this->response->withType('application/json')->withStringBody(json_encode($updated));
+                return $this->response->withType('application/json')->withStringBody(json_encode($this->serializeSessionRecord($updated)));
             } catch (\Throwable $_) {
                 return $this->response->withStatus(500)->withType('application/json')
                     ->withStringBody(json_encode(['error' => 'Failed to complete workout']));
@@ -314,7 +308,7 @@ class WorkoutsController extends AppController
                 ->withStringBody(json_encode(['error' => 'Invalid token']));
         }
 
-        $data = $this->request->getData();
+        $data = $this->normalizeSessionInput((array)$this->request->getData());
         $title = isset($data['title']) ? trim((string)$data['title']) : '';
         if (!$title) {
             return $this->response->withStatus(400)->withType('application/json')
@@ -332,6 +326,7 @@ class WorkoutsController extends AppController
             }
             if (is_array($incomingData)) {
                 unset($incomingData['completed'], $incomingData['completedAt'], $incomingData['completed_at'], $incomingData['completionSummary']);
+                $incomingData['kind'] = 'session';
                 $incomingData['completed'] = false;
                 $data['data'] = $incomingData;
             }
@@ -364,7 +359,7 @@ class WorkoutsController extends AppController
 
             if ($workouts->save($entity)) {
                 return $this->response->withStatus(201)->withType('application/json')
-                    ->withStringBody(json_encode($entity));
+                    ->withStringBody(json_encode($this->serializeSessionRecord($entity)));
             }
 
             // Fallback to PDO insert if save failed
@@ -412,7 +407,7 @@ class WorkoutsController extends AppController
                 if (isset($data['data'])) {
                     $result['data'] = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
                 }
-                return $this->response->withStatus(201)->withType('application/json')->withStringBody(json_encode($result));
+                return $this->response->withStatus(201)->withType('application/json')->withStringBody(json_encode($this->serializeSessionRecord($result)));
             } catch (\Throwable $_) {
                 return $this->response->withStatus(500)->withType('application/json')->withStringBody(json_encode(['error' => 'Failed to create workout']));
             }
@@ -457,7 +452,7 @@ class WorkoutsController extends AppController
                 ->withStringBody(json_encode(['error' => 'Invalid token']));
         }
 
-        $data = $this->request->getData();
+        $data = $this->normalizeSessionInput((array)$this->request->getData());
         $validationErrors = $this->validateWorkoutPayload($data, false);
         if ($validationErrors) {
             return $this->response->withStatus(400)->withType('application/json')
@@ -496,12 +491,15 @@ class WorkoutsController extends AppController
                 $entity->duration = $data['duration'] !== null ? (string)$data['duration'] : null;
             }
             if (array_key_exists('data', $data)) {
+                if (is_array($data['data'])) {
+                    $data['data']['kind'] = 'session';
+                }
                 $entity->data = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
             }
 
             if ($workouts->save($entity)) {
                 return $this->response->withType('application/json')
-                    ->withStringBody(json_encode($entity));
+                    ->withStringBody(json_encode($this->serializeSessionRecord($entity)));
             }
 
             throw new \RuntimeException('Failed to save workout update');
@@ -548,6 +546,9 @@ class WorkoutsController extends AppController
                     $params['duration'] = $data['duration'] !== null ? (string)$data['duration'] : null;
                 }
                 if (array_key_exists('data', $data)) {
+                    if (is_array($data['data'])) {
+                        $data['data']['kind'] = 'session';
+                    }
                     $set[] = 'data = :data';
                     $params['data'] = is_string($data['data']) ? $data['data'] : json_encode($data['data']);
                 }
@@ -564,7 +565,7 @@ class WorkoutsController extends AppController
                 $fetch = $pdo->prepare('SELECT * FROM workouts WHERE id = :id AND user_id = :uid');
                 $fetch->execute(['id' => $id, 'uid' => $userId]);
                 $row = $fetch->fetch(\PDO::FETCH_ASSOC) ?: ['id' => $id];
-                return $this->response->withType('application/json')->withStringBody(json_encode($row));
+                return $this->response->withType('application/json')->withStringBody(json_encode($this->serializeSessionRecord($row)));
             } catch (\Throwable $_) {
                 return $this->response->withStatus(500)->withType('application/json')
                     ->withStringBody(json_encode(['error' => 'Failed to update workout']));
@@ -727,12 +728,85 @@ class WorkoutsController extends AppController
             }));
             $rows = array_slice($rows, 0, 100);
             return array_map(function ($row) use ($viewerId) {
-                $row['isMine'] = $viewerId > 0 ? ((int)($row['user_id'] ?? 0) === $viewerId) : false;
-                return $row;
+                return array_merge($this->serializeSessionRecord($row), [
+                    'owner' => $row['owner'] ?? null,
+                    'isMine' => $viewerId > 0 ? ((int)($row['user_id'] ?? 0) === $viewerId) : false,
+                ]);
             }, $rows);
         } catch (\PDOException $e) {
             return [];
         }
+    }
+
+    protected function normalizeSessionInput(array $data): array
+    {
+        if (array_key_exists('sessionTitle', $data) && !array_key_exists('title', $data)) {
+            $data['title'] = $data['sessionTitle'];
+        }
+        if (array_key_exists('sessionDate', $data) && !array_key_exists('date', $data)) {
+            $data['date'] = $data['sessionDate'];
+        }
+        if (array_key_exists('sessionDuration', $data) && !array_key_exists('duration', $data)) {
+            $data['duration'] = $data['sessionDuration'];
+        }
+        if (array_key_exists('sessionNotes', $data) && !array_key_exists('notes', $data)) {
+            $data['notes'] = $data['sessionNotes'];
+        }
+        if (array_key_exists('sessionData', $data) && !array_key_exists('data', $data)) {
+            $data['data'] = $data['sessionData'];
+        }
+
+        $dataBlob = [];
+        if (array_key_exists('data', $data)) {
+            if (is_array($data['data'])) {
+                $dataBlob = $data['data'];
+            } elseif (is_string($data['data'])) {
+                $decoded = json_decode($data['data'], true);
+                $dataBlob = is_array($decoded) ? $decoded : [];
+            }
+        }
+
+        $dataBlob['kind'] = 'session';
+        if (isset($data['performedAt']) && !isset($dataBlob['completedAt'])) {
+            $dataBlob['completedAt'] = $data['performedAt'];
+            $dataBlob['completed_at'] = $data['performedAt'];
+        }
+
+        if (!empty($dataBlob)) {
+            $data['data'] = $dataBlob;
+        }
+
+        return $data;
+    }
+
+    protected function serializeSessionRecord($record): array
+    {
+        $row = is_object($record) ? $record->toArray() : (array)$record;
+        $data = $row['data'] ?? null;
+        if (is_string($data) && $data !== '') {
+            $decoded = json_decode($data, true);
+            if (is_array($decoded)) {
+                $data = $decoded;
+            }
+        }
+        if (!is_array($data)) {
+            $data = [];
+        }
+        $data['kind'] = 'session';
+        $row['data'] = $data;
+
+        $completedAt = $data['completedAt'] ?? $data['completed_at'] ?? null;
+
+        $row['kind'] = 'session';
+        $row['sessionId'] = $row['id'] ?? null;
+        $row['sessionTitle'] = $row['title'] ?? null;
+        $row['sessionDate'] = $row['date'] ?? null;
+        $row['sessionDuration'] = $row['duration'] ?? null;
+        $row['sessionNotes'] = $row['notes'] ?? null;
+        $row['performedAt'] = $completedAt;
+        $row['completedAt'] = $completedAt;
+
+        return $row;
     }
 
     protected function isCompletedWorkoutRecord($workout): bool
