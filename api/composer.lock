@@ -4,32 +4,32 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "532df34b24a8b198b230a124362304c8",
+    "content-hash": "d57fd12e227e48409af9beb294a04371",
     "packages": [
         {
             "name": "cakephp/cakephp",
-            "version": "5.3.6",
+            "version": "5.1.7",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cakephp/cakephp.git",
-                "reference": "cdaca8c3b710789e8545bff5a83194a6b19cad46"
+                "reference": "3b7d95dc6c5d34a8d9f080cc592bee03da316596"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cakephp/cakephp/zipball/cdaca8c3b710789e8545bff5a83194a6b19cad46",
-                "reference": "cdaca8c3b710789e8545bff5a83194a6b19cad46",
+                "url": "https://api.github.com/repos/cakephp/cakephp/zipball/3b7d95dc6c5d34a8d9f080cc592bee03da316596",
+                "reference": "3b7d95dc6c5d34a8d9f080cc592bee03da316596",
                 "shasum": ""
             },
             "require": {
-                "cakephp/chronos": "^3.3",
+                "cakephp/chronos": "^3.1",
                 "composer/ca-bundle": "^1.5",
                 "ext-intl": "*",
                 "ext-json": "*",
                 "ext-mbstring": "*",
-                "laminas/laminas-diactoros": "^3.8",
+                "laminas/laminas-diactoros": "^3.3",
                 "laminas/laminas-httphandlerrunner": "^2.6",
-                "league/container": "^5.1",
-                "php": ">=8.2",
+                "league/container": "^4.2",
+                "php": ">=8.1",
                 "psr/container": "^1.1 || ^2.0",
                 "psr/http-client": "^1.0.2",
                 "psr/http-factory": "^1.1",
@@ -65,12 +65,15 @@
                 "cakephp/validation": "self.version"
             },
             "require-dev": {
-                "cakephp/cakephp-codesniffer": "^5.3",
+                "cakephp/cakephp-codesniffer": "^5.0",
                 "http-interop/http-factory-tests": "^2.0",
-                "mikey179/vfsstream": "^1.6.12",
+                "mikey179/vfsstream": "^1.6.10",
                 "mockery/mockery": "^1.6",
                 "paragonie/csp-builder": "^2.3 || ^3.0",
-                "phpunit/phpunit": "^11.5.3 || ^12.1.3 || ^13.0"
+                "phpstan/extension-installer": "^1.3",
+                "phpstan/phpstan": "1.12.7",
+                "phpunit/phpunit": "^10.5.5 || ^11.1.3",
+                "symplify/phpstan-rules": "^12.4"
             },
             "suggest": {
                 "ext-curl": "To enable more efficient network calls in Http\\Client.",
@@ -78,11 +81,6 @@
                 "paragonie/csp-builder": "CSP builder, to use the CSP Middleware"
             },
             "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-5.next": "5.4.x-dev"
-                }
-            },
             "autoload": {
                 "files": [
                     "src/Core/functions.php",
@@ -125,7 +123,7 @@
                 "issues": "https://github.com/cakephp/cakephp/issues",
                 "source": "https://github.com/cakephp/cakephp"
             },
-            "time": "2026-05-23T16:55:57+00:00"
+            "time": "2026-05-23T16:51:40+00:00"
         },
         {
             "name": "cakephp/chronos",
@@ -188,28 +186,27 @@
         },
         {
             "name": "cakephp/migrations",
-            "version": "4.9.7",
+            "version": "4.6.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cakephp/migrations.git",
-                "reference": "7745bb8489b1aaaa17811db9ca4f3a1f153d7d98"
+                "reference": "c7312f25c1ebaf334090d53a29c872233d1258be"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cakephp/migrations/zipball/7745bb8489b1aaaa17811db9ca4f3a1f153d7d98",
-                "reference": "7745bb8489b1aaaa17811db9ca4f3a1f153d7d98",
+                "url": "https://api.github.com/repos/cakephp/migrations/zipball/c7312f25c1ebaf334090d53a29c872233d1258be",
+                "reference": "c7312f25c1ebaf334090d53a29c872233d1258be",
                 "shasum": ""
             },
             "require": {
-                "cakephp/cache": "^5.2.9",
-                "cakephp/database": "^5.2.9",
-                "cakephp/orm": "^5.2.9",
+                "cakephp/cache": "^5.0",
+                "cakephp/orm": "^5.0",
                 "php": ">=8.1",
-                "robmorgan/phinx": "0.16.10"
+                "robmorgan/phinx": "^0.16.10"
             },
             "require-dev": {
-                "cakephp/bake": "^3.3",
-                "cakephp/cakephp": "^5.2.9",
+                "cakephp/bake": "^3.0",
+                "cakephp/cakephp": "^5.0.11",
                 "cakephp/cakephp-codesniffer": "^5.0",
                 "phpunit/phpunit": "^10.5.5 || ^11.1.3 || ^12.2.4"
             },
@@ -246,7 +243,7 @@
                 "issues": "https://github.com/cakephp/migrations/issues",
                 "source": "https://github.com/cakephp/migrations"
             },
-            "time": "2026-04-30T19:46:00+00:00"
+            "time": "2025-07-22T17:47:52+00:00"
         },
         {
             "name": "composer/ca-bundle",
@@ -540,22 +537,21 @@
         },
         {
             "name": "league/container",
-            "version": "5.2.0",
+            "version": "4.2.5",
             "source": {
                 "type": "git",
                 "url": "https://github.com/thephpleague/container.git",
-                "reference": "58accbc032f0090a9bd08326f93062c5a658b2c5"
+                "reference": "d3cebb0ff4685ff61c749e54b27db49319e2ec00"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/thephpleague/container/zipball/58accbc032f0090a9bd08326f93062c5a658b2c5",
-                "reference": "58accbc032f0090a9bd08326f93062c5a658b2c5",
+                "url": "https://api.github.com/repos/thephpleague/container/zipball/d3cebb0ff4685ff61c749e54b27db49319e2ec00",
+                "reference": "d3cebb0ff4685ff61c749e54b27db49319e2ec00",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.1",
-                "psr/container": "^2.0.2",
-                "psr/event-dispatcher": "^1.0"
+                "php": "^7.2 || ^8.0",
+                "psr/container": "^1.1 || ^2.0"
             },
             "provide": {
                 "psr/container-implementation": "^1.0"
@@ -564,13 +560,13 @@
                 "orno/di": "~2.0"
             },
             "require-dev": {
-                "nette/php-generator": "^4.1",
-                "nikic/php-parser": "^5.0",
-                "phpstan/phpstan": "^2.1.11",
-                "phpunit/phpunit": "^10.5.45|^11.5.15|^12.0",
+                "nette/php-generator": "^3.4",
+                "nikic/php-parser": "^4.10",
+                "phpstan/phpstan": "^0.12.47",
+                "phpunit/phpunit": "^8.5.17",
                 "roave/security-advisories": "dev-latest",
-                "scrutinizer/ocular": "^1.9",
-                "squizlabs/php_codesniffer": "^3.9"
+                "scrutinizer/ocular": "^1.8",
+                "squizlabs/php_codesniffer": "^3.6"
             },
             "type": "library",
             "extra": {
@@ -579,8 +575,7 @@
                     "dev-2.x": "2.x-dev",
                     "dev-3.x": "3.x-dev",
                     "dev-4.x": "4.x-dev",
-                    "dev-5.x": "5.x-dev",
-                    "dev-master": "5.x-dev"
+                    "dev-master": "4.x-dev"
                 }
             },
             "autoload": {
@@ -612,7 +607,7 @@
             ],
             "support": {
                 "issues": "https://github.com/thephpleague/container/issues",
-                "source": "https://github.com/thephpleague/container/tree/5.2.0"
+                "source": "https://github.com/thephpleague/container/tree/4.2.5"
             },
             "funding": [
                 {
@@ -620,7 +615,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-03-19T18:52:39+00:00"
+            "time": "2025-05-20T12:55:37+00:00"
         },
         {
             "name": "psr/clock",
@@ -722,56 +717,6 @@
                 "source": "https://github.com/php-fig/container/tree/2.0.2"
             },
             "time": "2021-11-05T16:47:00+00:00"
-        },
-        {
-            "name": "psr/event-dispatcher",
-            "version": "1.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/php-fig/event-dispatcher.git",
-                "reference": "dbefd12671e8a14ec7f180cab83036ed26714bb0"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/php-fig/event-dispatcher/zipball/dbefd12671e8a14ec7f180cab83036ed26714bb0",
-                "reference": "dbefd12671e8a14ec7f180cab83036ed26714bb0",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=7.2.0"
-            },
-            "type": "library",
-            "extra": {
-                "branch-alias": {
-                    "dev-master": "1.0.x-dev"
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Psr\\EventDispatcher\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "PHP-FIG",
-                    "homepage": "http://www.php-fig.org/"
-                }
-            ],
-            "description": "Standard interfaces for event handling.",
-            "keywords": [
-                "events",
-                "psr",
-                "psr-14"
-            ],
-            "support": {
-                "issues": "https://github.com/php-fig/event-dispatcher/issues",
-                "source": "https://github.com/php-fig/event-dispatcher/tree/1.0.0"
-            },
-            "time": "2019-01-08T18:20:26+00:00"
         },
         {
             "name": "psr/http-client",
@@ -882,16 +827,16 @@
         },
         {
             "name": "psr/http-message",
-            "version": "1.1",
+            "version": "2.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/php-fig/http-message.git",
-                "reference": "cb6ce4845ce34a8ad9e68117c10ee90a29919eba"
+                "reference": "402d35bcb92c70c026d1a6a9883f06b2ead23d71"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/php-fig/http-message/zipball/cb6ce4845ce34a8ad9e68117c10ee90a29919eba",
-                "reference": "cb6ce4845ce34a8ad9e68117c10ee90a29919eba",
+                "url": "https://api.github.com/repos/php-fig/http-message/zipball/402d35bcb92c70c026d1a6a9883f06b2ead23d71",
+                "reference": "402d35bcb92c70c026d1a6a9883f06b2ead23d71",
                 "shasum": ""
             },
             "require": {
@@ -900,7 +845,7 @@
             "type": "library",
             "extra": {
                 "branch-alias": {
-                    "dev-master": "1.1.x-dev"
+                    "dev-master": "2.0.x-dev"
                 }
             },
             "autoload": {
@@ -915,7 +860,7 @@
             "authors": [
                 {
                     "name": "PHP-FIG",
-                    "homepage": "http://www.php-fig.org/"
+                    "homepage": "https://www.php-fig.org/"
                 }
             ],
             "description": "Common interface for HTTP messages",
@@ -929,9 +874,9 @@
                 "response"
             ],
             "support": {
-                "source": "https://github.com/php-fig/http-message/tree/1.1"
+                "source": "https://github.com/php-fig/http-message/tree/2.0"
             },
-            "time": "2023-04-04T09:50:52+00:00"
+            "time": "2023-04-04T09:54:51+00:00"
         },
         {
             "name": "psr/http-server-handler",
@@ -1149,16 +1094,16 @@
         },
         {
             "name": "robmorgan/phinx",
-            "version": "0.16.10",
+            "version": "0.16.12",
             "source": {
                 "type": "git",
                 "url": "https://github.com/cakephp/phinx.git",
-                "reference": "83f83ec105e55e3abba7acc23c0272b5fcf66929"
+                "reference": "1cce44387a9146dc04c312e6a231b17fb30385cd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cakephp/phinx/zipball/83f83ec105e55e3abba7acc23c0272b5fcf66929",
-                "reference": "83f83ec105e55e3abba7acc23c0272b5fcf66929",
+                "url": "https://api.github.com/repos/cakephp/phinx/zipball/1cce44387a9146dc04c312e6a231b17fb30385cd",
+                "reference": "1cce44387a9146dc04c312e6a231b17fb30385cd",
                 "shasum": ""
             },
             "require": {
@@ -1166,16 +1111,16 @@
                 "composer-runtime-api": "^2.0",
                 "php-64bit": ">=8.1",
                 "psr/container": "^1.1|^2.0",
-                "symfony/config": "^4.0|^5.0|^6.0|^7.0",
-                "symfony/console": "^6.0|^7.0"
+                "symfony/config": "^4.0|^5.0|^6.0|^7.0|^8.0",
+                "symfony/console": "^6.0|^7.0|^8.0"
             },
             "require-dev": {
                 "cakephp/cakephp-codesniffer": "^5.0",
                 "cakephp/i18n": "^5.0",
                 "ext-json": "*",
                 "ext-pdo": "*",
-                "phpunit/phpunit": "^9.5.19",
-                "symfony/yaml": "^4.0|^5.0|^6.0|^7.0"
+                "phpunit/phpunit": "^10.5",
+                "symfony/yaml": "^4.0|^5.0|^6.0|^7.0|^8.0"
             },
             "suggest": {
                 "ext-json": "Install if using JSON configuration format",
@@ -1230,9 +1175,9 @@
             ],
             "support": {
                 "issues": "https://github.com/cakephp/phinx/issues",
-                "source": "https://github.com/cakephp/phinx/tree/0.16.10"
+                "source": "https://github.com/cakephp/phinx/tree/0.16.12"
             },
-            "time": "2025-07-08T18:55:28+00:00"
+            "time": "2026-07-03T07:27:17+00:00"
         },
         {
             "name": "symfony/config",
@@ -2073,8 +2018,11 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.0"
+        "php": "^8.2"
     },
     "platform-dev": {},
+    "platform-overrides": {
+        "php": "8.2.0"
+    },
     "plugin-api-version": "2.9.0"
 }

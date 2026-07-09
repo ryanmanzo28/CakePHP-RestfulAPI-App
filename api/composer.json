@@ -2,12 +2,12 @@
   "name": "hydracor/api",
   "description": "Hydracor CakePHP REST API glue for middleware",
   "require": {
-    "php": "^8.0",
+    "php": "^8.2",
     "firebase/php-jwt": "^6.0",
-    "psr/http-message": "^1.0",
-    "psr/http-server-handler": "^1.0",
-    "cakephp/cakephp": "^5.0",
-    "cakephp/migrations": "^4.0"
+    "psr/http-message": "^1.1 || ^2.0",
+    "psr/http-server-handler": "^1.0.2",
+    "cakephp/cakephp": ">=5.1 <5.2",
+    "cakephp/migrations": ">=4.6 <4.7"
   },
   "autoload": {
     "psr-4": {
@@ -15,6 +15,9 @@
     }
   },
   "config": {
+    "platform": {
+      "php": "8.2.0"
+    },
     "policy": {
       "advisories": {
         "block": false
