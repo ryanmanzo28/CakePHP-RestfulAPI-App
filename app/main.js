@@ -7,6 +7,138 @@ function getStoredUsername() {
     return localStorage.getItem('username') || sessionStorage.getItem('username') || '';
 }
 
+const REQUEST_TIMEOUT_MS = 12000;
+let activeNetworkRequests = 0;
+let toastHideTimer = null;
+
+function ensureUiStyles() {
+    if (document.getElementById('hc-ui-style')) return;
+    const style = document.createElement('style');
+    style.id = 'hc-ui-style';
+    style.textContent = [
+        '.hc-top-loader{position:fixed;top:0;left:0;height:3px;width:100%;transform-origin:left center;transform:scaleX(0);opacity:0;transition:transform .18s ease,opacity .18s ease;background:linear-gradient(90deg,#4f46e5,#22c55e);z-index:2000;pointer-events:none}',
+        'body.hc-loading .hc-top-loader{transform:scaleX(1);opacity:1}',
+        '.hc-toast.info{border-left:4px solid #4f46e5}',
+        '.hc-toast.success{border-left:4px solid #16a34a}',
+        '.hc-toast.error{border-left:4px solid #dc2626}',
+    ].join('');
+    document.head.appendChild(style);
+}
+
+function ensureTopLoaderElement() {
+    ensureUiStyles();
+    if (!document.body) return null;
+    let el = document.getElementById('hcTopLoader');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'hcTopLoader';
+        el.className = 'hc-top-loader';
+        el.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
+function setGlobalLoadingState(isLoading) {
+    if (!document.body) return;
+    ensureTopLoaderElement();
+    if (isLoading) {
+        document.body.classList.add('hc-loading');
+        document.body.setAttribute('aria-busy', 'true');
+    } else {
+        document.body.classList.remove('hc-loading');
+        document.body.removeAttribute('aria-busy');
+    }
+}
+
+function beginNetworkActivity() {
+    activeNetworkRequests += 1;
+    setGlobalLoadingState(true);
+}
+
+function endNetworkActivity() {
+    activeNetworkRequests = Math.max(0, activeNetworkRequests - 1);
+    if (activeNetworkRequests === 0) {
+        setGlobalLoadingState(false);
+    }
+}
+
+function ensureToastElement() {
+    ensureUiStyles();
+    if (!document.body) return null;
+    let toast = document.getElementById('hcToast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'hcToast';
+        toast.className = 'snackbar hide hc-toast info';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        document.body.appendChild(toast);
+    }
+    return toast;
+}
+
+function showToast(message, kind = 'info', options = {}) {
+    const toast = ensureToastElement();
+    if (!toast || !message) return;
+    const type = kind === 'success' ? 'success' : (kind === 'error' ? 'error' : 'info');
+    const duration = Number.isFinite(options.duration) ? Number(options.duration) : 2600;
+    toast.textContent = String(message);
+    toast.className = `snackbar hc-toast ${type}`;
+    if (toastHideTimer) {
+        clearTimeout(toastHideTimer);
+        toastHideTimer = null;
+    }
+    toastHideTimer = setTimeout(() => {
+        toast.classList.add('hide');
+    }, Math.max(800, duration));
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+    beginNetworkActivity();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        return await fetch(url, Object.assign({}, options, { signal: controller.signal }));
+    } catch (error) {
+        if (error && error.name === 'AbortError') {
+            const timeoutError = new Error('Request timed out. Please try again.');
+            timeoutError.code = 'TIMEOUT';
+            throw timeoutError;
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeout);
+        endNetworkActivity();
+    }
+}
+
+function parseJsonLoose(text) {
+    if (!text) return null;
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        const match = text.match(/(\{[\s\S]*\}|\[[\s\S]*\])/);
+        if (match && match[1]) {
+            try {
+                return JSON.parse(match[1]);
+            } catch (err) {
+                return null;
+            }
+        }
+        return null;
+    }
+}
+
+async function parseResponseBody(response) {
+    const text = await response.text().catch(() => '');
+    const parsed = parseJsonLoose(text);
+    return {
+        text,
+        data: parsed,
+    };
+}
+
 async function tryRefreshAuthTokenFromStoredSession() {
     const email = getStoredUsername();
     const passwordHash = localStorage.getItem('passwordHash') || sessionStorage.getItem('passwordHash') || '';
@@ -67,6 +199,8 @@ function setAuthSession({ token, username, passwordHash, rememberMe }) {
 
 async function init() {
     console.log("Workout Tracker initialized.");
+    ensureTopLoaderElement();
+    ensureToastElement();
 
     const token = getAuthToken();
     const pathname = window.location.pathname || '';
@@ -96,7 +230,18 @@ async function init() {
         console.log("No user token found in localStorage.");
     }
 }
-    
+
+
+let appInitPromise = null;
+
+function ensureInit() {
+    if (appInitPromise) return appInitPromise;
+    appInitPromise = init().catch((error) => {
+        console.error('App initialization failed:', error);
+        throw error;
+    });
+    return appInitPromise;
+}
 
 
 async function hashPassword(plainText) {
@@ -341,7 +486,7 @@ async function loadWorkouts(options = {}) {
    }
 
    try {
-    const response = await fetch(`/api/workouts`, {
+    const response = await fetchWithTimeout(`/api/workouts`, {
         headers: {
             'Authorization': `Bearer ${token}`,
             'Accept': 'application/json'
@@ -350,7 +495,7 @@ async function loadWorkouts(options = {}) {
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
-    const json = await response.json().catch(() => null);
+    const { data: json } = await parseResponseBody(response);
     // Normalize different response shapes into an array of workout objects
     let workouts = [];
     if (Array.isArray(json)) workouts = json;
@@ -376,6 +521,7 @@ async function loadWorkouts(options = {}) {
     if (Array.isArray(workoutsCacheData) && workoutsCacheData.length) {
         return workoutsCacheData.slice();
     }
+    showToast('Could not load workouts right now.', 'error', { duration: 3000 });
     return [];
    }
 }
@@ -387,7 +533,7 @@ async function loginCheck() {
         return;
     }
 
-    const response = await fetch("/api/auth/check", {
+    const response = await fetchWithTimeout("/api/auth/check", {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`,
@@ -403,7 +549,7 @@ async function loginCheck() {
         return;
     }
 
-    const data = await response.json().catch(() => null);
+    const { data } = await parseResponseBody(response);
     if (!data || !data.valid) {
         clearAuthStorage();
         window.location.href = "/pages/login.html";
@@ -412,12 +558,14 @@ async function loginCheck() {
 
 // Run init on DOM ready
 document.addEventListener('DOMContentLoaded', () => {
-    void init();
-});
+    void ensureInit();
+}, { once: true });
+
+window.init = ensureInit;
 
 async function createAccount(username, email, password) {
     const hashedPassword = await hashPassword(password + email.toLowerCase());
-    const response = await fetch("/api/auth/register", {
+    const response = await fetchWithTimeout("/api/auth/register", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -426,21 +574,10 @@ async function createAccount(username, email, password) {
         body: JSON.stringify({ username, email, password: hashedPassword })
     });
 
-    const text = await response.text();
-    let data = null;
-    try {
-        data = text ? JSON.parse(text) : null;
-    } catch (e) {
-        // If parsing failed (e.g. PHP warnings prepended), try to extract the JSON object
-        data = null;
-        if (text) {
-            const m = text.match(/(\{[\s\S]*\})/);
-            if (m && m[1]) {
-                try { data = JSON.parse(m[1]); } catch (ee) { /* ignore */ }
-            }
-        }
-        // fallback to raw text message
-        if (!data) data = { message: text };
+    const { text, data: parsedData } = await parseResponseBody(response);
+    let data = parsedData;
+    if (!data && text) {
+        data = { message: text };
     }
 
     if (!response.ok) {
@@ -491,7 +628,7 @@ async function addWorkout({ title, date, duration, notes, type, sets, exercises,
     if (weightUnit !== undefined) dataBlob.weightUnit = weightUnit;
     if (Object.keys(dataBlob).length) body.data = dataBlob;
     try {
-        const res = await fetch('/api/workouts', {
+        const res = await fetchWithTimeout('/api/workouts', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -503,9 +640,7 @@ async function addWorkout({ title, date, duration, notes, type, sets, exercises,
 
         if (!res.ok) {
             // if server rejects, surface message
-            const text = await res.text().catch(() => '');
-            let data = null;
-            try { data = text ? JSON.parse(text) : null; } catch (e) { }
+            const { data } = await parseResponseBody(res);
             const msg = data && (data.error || data.message) ? (data.error || data.message) : `HTTP ${res.status}`;
             throw new Error(msg);
         }
@@ -530,6 +665,7 @@ async function addWorkout({ title, date, duration, notes, type, sets, exercises,
         return created;
     } catch (err) {
         invalidateWorkoutsCache();
+        showToast('Unable to save workout. Please retry.', 'error', { duration: 3000 });
         throw err;
     }
 }
@@ -606,7 +742,7 @@ async function updateWorkout(id, { title, date, duration, notes, type, sets, exe
 
         for (let attempt = 0; attempt < 2; attempt++) {
             for (const method of methods) {
-                res = await fetch(endpoint, {
+                res = await fetchWithTimeout(endpoint, {
                     method,
                     headers: {
                         'Content-Type': 'application/json',
@@ -632,8 +768,7 @@ async function updateWorkout(id, { title, date, duration, notes, type, sets, exe
             break;
         }
         if(!res.ok){
-            const text = await res.text().catch(()=>'');
-            let data = null; try{ data = text? JSON.parse(text) : null; }catch(e){}
+            const { data } = await parseResponseBody(res);
             const msg = data && (data.error || data.message) ? (data.error || data.message) : `HTTP ${res.status}`;
             throw new Error(msg);
         }
@@ -642,6 +777,7 @@ async function updateWorkout(id, { title, date, duration, notes, type, sets, exe
         return updated || Object.assign({ id: normalizedId }, body);
     }catch(err){
         // On failure, throw so caller can surface error and decide optimistic behavior
+        showToast('Unable to update workout.', 'error', { duration: 3000 });
         throw err;
     }
 }
@@ -662,7 +798,7 @@ async function deleteWorkout(id) {
     ];
     let res = null;
     for (const route of routes) {
-        res = await fetch(route.url, {
+        res = await fetchWithTimeout(route.url, {
             method: route.method,
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -673,15 +809,15 @@ async function deleteWorkout(id) {
         if (![404, 405, 501].includes(res.status)) break;
     }
     if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        let data = null;
-        try { data = text ? JSON.parse(text) : null; } catch (e) {}
+        const { data } = await parseResponseBody(res);
         const msg = data && (data.error || data.message) ? (data.error || data.message) : `HTTP ${res.status}`;
         const err = new Error(msg);
         err.status = res.status;
+        showToast('Could not delete workout.', 'error', { duration: 3000 });
         throw err;
     }
     invalidateWorkoutsCache();
+    showToast('Workout deleted.', 'success', { duration: 1800 });
     return true;
 }
 
@@ -866,3 +1002,4 @@ window.getAuthToken = getAuthToken;
 window.getStoredUsername = getStoredUsername;
 window.clearAuthStorage = clearAuthStorage;
 window.setAuthSession = setAuthSession;
+window.showToast = showToast;
